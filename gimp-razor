@@ -52,7 +52,6 @@
   babl_src_dir="$src_dir/babl"
   gegl_src_dir="$src_dir/gegl"
   processors="$(cat /proc/cpuinfo | grep processor | wc -l)"
-  logfile="$HOME/log/$script_name-$build_id.log"
   
   # exports needed outside of the scipt
   export PATH="$gimp_install_dir/bin:$PATH"
@@ -134,9 +133,9 @@
     log_section "Building $(basename $1)"
     cd "$1"
     ./autogen.sh --prefix="$gimp_install_dir" >> "$logfile" &&\
-    make clean >> "$logfile" &&\
-    make -j $processors >> "$logfile" &&\
-    make install >> "$logfile"
+    make clean &&\
+    make -j $processors &&\
+    make install
   }
 
   build_all(){
