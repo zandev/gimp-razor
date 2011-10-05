@@ -1,0 +1,147 @@
+#!/bin/bash
+
+###
+## readonly vars
+
+  pushd $(dirname $(readlink -f "$BASH_SOURCE")) > /dev/null
+  readonly script_dir="$PWD"
+  popd > /dev/null
+
+  readonly script_name=$(basename $0)
+  build_id="$(date +'%Y-%m-%d-%H-%M-%S')"
+
+##
+###
+
+
+###
+## Configuration
+
+  opt_dir="$HOME/opt"
+  src_dir="$HOME/src/git"
+  gimp_install_dir="$opt_dir/gimp/build_$build_id"
+  gimp_src_dir="$src_dir/gimp"
+  babl_src_dir="$src_dir/babl"
+  gegl_src_dir="$src_dir/gegl"
+  processors="$(cat /proc/cpuinfo | grep processor | wc -l)"
+  logfile="$HOME/log/$script_name-$build_id.log"
+
+  export PATH="$gimp_install_dir/bin:$PATH"
+  export PKG_CONFIG_PATH="$gimp_install_dir/lib/pkgconfig:$PKG_CONFIG_PATH"
+  export LD_LIBRARY_PATH="$gimp_install_dir/lib:$LD_LIBRARY_PATH"
+  #export ACLOCAL_FLAGS="-I $gimp_install_dir/share/aclocal $ACLOCAL_FLAGS"
+
+##
+###
+
+
+
+###
+## FUNCTIONS
+
+  log_entry() {
+    echo
+    printf -vch  "%80s" ""
+    printf "%s\n" "${ch// /$1}"
+    echo "$1$1  $2"
+    echo
+  }
+
+  log_task(){
+    log_entry '#' "$@"
+  }
+
+  log_section() {
+    log_entry '=' "$@"
+  }
+
+  log_message() {
+    log_entry '-' "$@"
+  }
+
+  log_debug() {
+    if $debug; then
+      echo "$@" >> "$debug_file"
+    fi
+  }
+
+  log_verbose() {
+    if $verbose; then
+      echo "$@"
+    fi
+  }
+
+  mkdirs(){
+    log_section "Creating directories"
+    mkdir -v "$opt_dir" "$src_dir" "$gimp_install_dir"
+  }
+
+  install_apt_deps(){
+    log_section "Installing required apt dependencies"
+    sudo aptitude install fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev
+  }
+
+  update_git_repository(){
+    repo_name="$(basename $1)"
+    log_section "Checking state og git repository git://git.gnome.org/$repo_name"
+    if [ -d "$1" ]; then
+      cd "$1"
+      if git status; then
+        log_message "Local repository $repo_name already exist, updating from remote master"
+        git pull --rebase
+      else
+        log_message "$1 is not a git repository, cleaning"
+        echo rm -rfi "$1"
+        update_git_repository
+      fi
+    else
+      log_message "Cloning git://git.gnome.org/$repo_name in $1"
+      cd "$(dirname $1)"
+      git clone "git://git.gnome.org/$repo_name"
+    fi
+  }
+
+  update_repositories(){
+    log_section "Updating repositories"
+    for repo in babl gegl gimp; do
+      update_git_repository "$src_dir/$repo"
+    done
+  }
+
+  get_commit_id(){
+    cd "$gimp_src_dir"
+    echo "git describe" | tr 'A-Z' 'a-z' | sed 's/[^a-zA-Z0-9_-]/-/g'
+  }
+
+  build(){
+    log_section "Building $(basename $1)"
+    cd "$1"
+    ./autogen.sh --prefix="$gimp_install_dir" >> "$logfile" &&\
+    make clean >> "$logfile" &&\
+    make -j $processors >> "$logfile" &&\
+    make install >> "$logfile"
+  }
+
+  build_all(){
+    build "$babl_src_dir"
+    build "$gegl_src_dir"
+    build "$gimp_src_dir"
+  }
+
+##
+###
+
+
+###
+## Main
+  log_task "Install distribution dependencies"
+  install_apt_deps
+
+  log_task "Retrieving or updating sources"
+  update_repositories
+
+  log_task "Building from sources"
+  build_all
+
+##
+###
