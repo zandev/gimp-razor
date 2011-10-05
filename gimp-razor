@@ -90,7 +90,7 @@
 
   mkdirs(){
     log_section "Creating directories"
-    mkdir -v "$opt_dir" "$src_dir" "$gimp_install_dir"
+    mkdir -vp "$opt_dir" "$src_dir" "$gimp_install_dir"
   }
 
   install_apt_deps(){
