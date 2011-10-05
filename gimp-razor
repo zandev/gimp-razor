@@ -132,7 +132,7 @@
   build(){
     log_section "Building $(basename $1)"
     cd "$1"
-    ./autogen.sh --prefix="$gimp_install_dir" >> "$logfile" &&\
+    ./autogen.sh --prefix="$gimp_install_dir" &&\
     make clean &&\
     make -j $processors &&\
     make install
