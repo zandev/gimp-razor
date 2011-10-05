@@ -43,7 +43,7 @@
 
 
 ###
-## Configuration
+## Configuration: Here you have the oportunity, expected that you know what you're doing, to tweak the configuration to suit your needs. 
 
   opt_dir="$HOME/opt"
   src_dir="$HOME/src/git"
@@ -53,7 +53,8 @@
   gegl_src_dir="$src_dir/gegl"
   processors="$(cat /proc/cpuinfo | grep processor | wc -l)"
   logfile="$HOME/log/$script_name-$build_id.log"
-
+  
+  # exports needed outside of the scipt
   export PATH="$gimp_install_dir/bin:$PATH"
   export PKG_CONFIG_PATH="$gimp_install_dir/lib/pkgconfig:$PKG_CONFIG_PATH"
   export LD_LIBRARY_PATH="$gimp_install_dir/lib:$LD_LIBRARY_PATH"
@@ -144,6 +145,11 @@
     build "$gimp_src_dir"
   }
 
+  test_build(){
+    "$gimp_install_dir/bin/gimp-2.7"
+  }
+
+
 ##
 ###
 
@@ -159,6 +165,9 @@
 
   log_task "Building from sources"
   build_all
+  
+  log_task "Launching your cutting edge gimp, behave yourself..."
+  test_build
 
 ##
 ###
