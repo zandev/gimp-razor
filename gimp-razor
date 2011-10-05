@@ -100,7 +100,7 @@
 
   update_git_repository(){
     repo_name="$(basename $1)"
-    log_section "Checking state og git repository git://git.gnome.org/$repo_name"
+    log_section "Checking state of git repository git://git.gnome.org/$repo_name"
     if [ -d "$1" ]; then
       cd "$1"
       if git status; then
@@ -161,6 +161,7 @@
   install_apt_deps
 
   log_task "Retrieving or updating sources"
+  mkdirs
   update_repositories
 
   log_task "Building from sources"
