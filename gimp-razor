@@ -59,6 +59,7 @@
   export LD_LIBRARY_PATH="$gimp_install_dir/lib:$LD_LIBRARY_PATH"
   #export ACLOCAL_FLAGS="-I $gimp_install_dir/share/aclocal $ACLOCAL_FLAGS"
 
+  pkg_cmd="apt-get install"
   deps="fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby"
 
 ##
@@ -118,7 +119,7 @@
 
     install_apt_deps(){
       log_section "Installing required apt dependencies"
-      sudo apt-get install $deps || exit_with "aptitude fail while trying to install dependencies $deps"
+      sudo ${pkg_cmd} $deps || exit_with "aptitude fail while trying to install dependencies $deps"
     }
 
     update_git_repository(){
