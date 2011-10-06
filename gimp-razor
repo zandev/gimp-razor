@@ -118,7 +118,7 @@
 
     install_apt_deps(){
       log_section "Installing required apt dependencies"
-      sudo aptitude install $deps || exit_with "aptitude fail while trying to install dependencies $deps"
+      sudo apt-get install $deps || exit_with "aptitude fail while trying to install dependencies $deps"
     }
 
     update_git_repository(){
