@@ -59,6 +59,8 @@
   export LD_LIBRARY_PATH="$gimp_install_dir/lib:$LD_LIBRARY_PATH"
   #export ACLOCAL_FLAGS="-I $gimp_install_dir/share/aclocal $ACLOCAL_FLAGS"
 
+  deps="fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby"
+
 ##
 ###
 
@@ -67,87 +69,115 @@
 ###
 ## FUNCTIONS
 
-  log_entry() {
-    echo
-    printf -vch  "%80s" ""
-    printf "%s\n" "${ch// /$1}"
-    echo "$1$1  $2"
-    echo
-  }
+  ###
+  ## HELPERS
 
-  log_task(){
-    log_entry '#' "$@"
-  }
+    log_entry() {
+      echo
+      printf -vch  "%80s" ""
+      printf "%s\n" "${ch// /$1}"
+      echo "$1$1  $2"
+      echo
+    }
 
-  log_section() {
-    log_entry '=' "$@"
-  }
+    log_task(){
+      log_entry '#' "$@"
+    }
 
-  log_message() {
-    log_entry '-' "$@"
-  }
+    log_section() {
+      log_entry '=' "$@"
+    }
 
-  mkdirs(){
-    log_section "Creating directories"
-    mkdir -vp "$opt_dir" "$src_dir" "$gimp_install_dir"
-  }
+    log_message() {
+      log_entry '-' "$@"
+    }
 
-  install_apt_deps(){
-    log_section "Installing required apt dependencies"
-    sudo aptitude install fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev
-  }
+    ask_user() {
+      echo -n "--  $@: "
+    }
 
-  update_git_repository(){
-    repo_name="$(basename $1)"
-    log_section "Checking state of git repository git://git.gnome.org/$repo_name"
-    if [ -d "$1" ]; then
-      cd "$1"
-      if git status; then
-        log_message "Local repository $repo_name already exist, updating from remote master"
-        git pull --rebase
+    exit_with(){
+      echo "ERROR (exit code $?): $1"
+      exit $?
+    }
+
+  ##
+  ###
+
+
+  ###
+  ## TASKS
+
+    mkdirs(){
+      log_section "Creating directories"
+      local dirs=( "$opt_dir" "$src_dir" "$gimp_install_dir" )
+      for dir in ${dirs[@]}; do
+        mkdir -vp $dir || exit_with "An error occured while trying to create $dir"
+      done
+    }
+
+    install_apt_deps(){
+      log_section "Installing required apt dependencies"
+      sudo aptitude install $deps || exit_with "aptitude fail while trying to install dependencies $deps"
+    }
+
+    update_git_repository(){
+      local repo_name="$(basename $1)"
+      local repo="git://git.gnome.org/$repo_name"
+      log_section "Checking state of git repository $repo"
+      if [ -d "$1" ]; then
+        cd "$1"
+        if git status; then
+          log_message "Local repository $repo_name already exist, updating from remote master"
+          git pull --rebase || exit_with "git failed while trying to pull from master repository $repo"
+        else
+          log_message "$1 is not a git repository, cleaning"
+          ask_user "$script_name is going to remove the directory $1 and all it's content. Proceed? [Y/n]"
+          read input
+          [ "$(echo ${input:-Y} | tr [a-z] [A-Z])" == 'Y' ] && rm -rfv "$1"
+          update_git_repository
+        fi
       else
-        log_message "$1 is not a git repository, cleaning"
-        echo rm -rfi "$1"
-        update_git_repository
+        log_message "Cloning git://git.gnome.org/$repo_name in $1"
+        cd "$(dirname $1)"
+        git clone "git://git.gnome.org/$repo_name" || exit_with "git failed while trying to clone repository $repo"
       fi
-    else
-      log_message "Cloning git://git.gnome.org/$repo_name in $1"
-      cd "$(dirname $1)"
-      git clone "git://git.gnome.org/$repo_name"
-    fi
-  }
+    }
 
-  update_repositories(){
-    log_section "Updating repositories"
-    for repo in babl gegl gimp; do
-      update_git_repository "$src_dir/$repo"
-    done
-  }
+    update_repositories(){
+      log_section "Updating repositories"
+      for repo in babl gegl gimp; do
+        update_git_repository "$src_dir/$repo"
+      done
+    }
 
-  get_commit_id(){
-    cd "$gimp_src_dir"
-    echo "git describe" | tr 'A-Z' 'a-z' | sed 's/[^a-zA-Z0-9_-]/-/g'
-  }
+    get_commit_id(){
+      cd "$gimp_src_dir"
+      echo "git describe" | tr 'A-Z' 'a-z' | sed 's/[^a-zA-Z0-9_-]/-/g'
+    }
 
-  build(){
-    log_section "Building $(basename $1)"
-    cd "$1"
-    ./autogen.sh --prefix="$gimp_install_dir" &&\
-    make clean &&\
-    make -j $processors &&\
-    make install
-  }
+    build(){
+      local name="$(basename $1)"
+      log_section "Building $name"
+      cd "$1"
+      ./autogen.sh --prefix="$gimp_install_dir" || exit_with "while executing ${name}'s autogen.sh"
+      make clean || exit_with "while executing 'make clean' for $name"
+      make -j $processors || exit_with "while executing 'make' for $name"
+      make install || exit_with "while executing 'make install' for $name"
+    }
 
-  build_all(){
-    build "$babl_src_dir"
-    build "$gegl_src_dir"
-    build "$gimp_src_dir"
-  }
+    build_all(){
+      build "$babl_src_dir"
+      build "$gegl_src_dir"
+      build "$gimp_src_dir"
+    }
 
-  test_build(){
-    "$gimp_install_dir/bin/gimp-2.7"
-  }
+    test_build(){
+      "$gimp_install_dir/bin/gimp-2.7" || exit_with "while trying to launch your rounded edge gimp :("
+    }
 
+  ##
+  ###
 
 ##
 ###
@@ -155,7 +185,7 @@
 
 ###
 ## Main
-
+ 
   log_task "Install distribution dependencies"
   install_apt_deps
 
