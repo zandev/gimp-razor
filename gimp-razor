@@ -45,21 +45,40 @@
 ###
 ## Configuration: Here you have the oportunity, expected that you know what you're doing, to tweak the configuration to suit your needs. 
 
+  # Where do you want your out of disto softwares to be installed? 
+  # If you want to put them in /opt or /usr/local, 
+  # you may need to change this script in order to call sudo before make install
+  # or to run this script as root, neither of the two ideas being very bright...
   opt_dir="$HOME/opt"
+
+  # Where should we retrieve and look for git repositories?
   src_dir="$HOME/src/git"
+
+  # Where do you want your razor sharp gimp to be installed?
   gimp_install_dir="$opt_dir/gimp/build_$build_id"
+
+  # Sources directories for gimp, babl and gegl
   gimp_src_dir="$src_dir/gimp"
   babl_src_dir="$src_dir/babl"
   gegl_src_dir="$src_dir/gegl"
+
+  # How many processor to use for compilation. The default below will use them all.
   processors="$(cat /proc/cpuinfo | grep processor | wc -l)"
   
-  # exports needed outside of the scipt
+  # Exports needed outside of this script's scope, 
+  # you probably don't need to tweak things here.
   export PATH="$gimp_install_dir/bin:$PATH"
   export PKG_CONFIG_PATH="$gimp_install_dir/lib/pkgconfig:$PKG_CONFIG_PATH"
   export LD_LIBRARY_PATH="$gimp_install_dir/lib:$LD_LIBRARY_PATH"
-  #export ACLOCAL_FLAGS="-I $gimp_install_dir/share/aclocal $ACLOCAL_FLAGS"
 
-  pkg_cmd="apt-get install"
+  # The package management command to run
+  pkg_cmd="sudo apt-get install"
+  
+  # The packages to install
+  # These are specific to Ubuntu 11.x
+  # If you're running another distro, you'll need to pich the list by yourself
+  # Read the ${gimp_src_dir}/INSTALL, 
+  # and do trial'n errors by running this script until you've resolved all dependencies
   deps="fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby"
 
 ##
@@ -119,7 +138,7 @@
 
     install_apt_deps(){
       log_section "Installing required apt dependencies"
-      sudo ${pkg_cmd} $deps || exit_with "aptitude fail while trying to install dependencies $deps"
+      ${pkg_cmd} $deps || exit_with "aptitude fail while trying to install dependencies $deps"
     }
 
     update_git_repository(){
