@@ -113,7 +113,7 @@
     }
 
     ask_user() {
-      echo -n "--  $@: "
+      echo -n "--  $@: " | fold -s -w 80
     }
 
     exit_with(){
@@ -206,59 +206,89 @@
 ###
 ## Main
 
-args_doc="-s  --src       Retrieve sources
--b  --build     Build
--a  --babl      Retrieve and build babl
--e  --gegl      Retrieve and build gegl
--g  --gimp      Retrieve and build gimp
--r  --release=  Specify the release to build
--p  --painter   Apply the gimp painter patch before building
--G  --gps       Install Gimp Paint Studio"
+  ###
+  ## shflags
 
+    readonly shflags_uri="http://shflags.googlecode.com/svn/tags/1.0.3/src/shflags"
 
-  parse_arg(){
-    while read line; do 
-      local a=$(echo "$line" | awk '{print $1}')
-      local b=$(echo "$line" | awk '{print $2}')
-      if [ "$1" == "$a" ] || [ "$1" == "$b" ]; then
-        return 0
+    if [ ! -f "$script_dir/shflags" ]; then
+      ask_user "$script_name rely on shflags to parse the cli arguments, but it's not present in $script_dir. While it's not mandatory, it's usefull if you want to specify some custom command line arguments. We can download it from $shflags_uri. Shall we proceed? [Y/n]"
+      read input
+      if [ "$(echo ${input:-Y} | tr [a-z] [A-Z])" == 'Y' ]; then
+        cd "$script_dir"
+        wget "$shflags_uri"
       fi
-    done < <(echo "$args_doc")
-    return 1
-  }
-
-  compil_args(){
-    local result="$@"
-    while read line; do 
-      local sub=$(echo "$line" | awk '{print $1}')
-      local arg=$(echo "$line" | awk '{print $2}')
-      result="${result/$arg/$sub}"
-    done < <(echo "$args_doc")
-    echo "$result"
-  }
-
-  readonly arguments="$(compil_args $@)"
-
-  for arg in $arguments; do
-    parse_arg "$arg" || exit_with "Unknow arg $arg"
-  done
-
-  exit 0
+    fi
 
 
- 
-  log_task "Install distribution dependencies"
-  install_apt_deps
+  ##
+  ###
 
-  log_task "Retrieving or updating sources"
-  mkdirs
-  update_repositories
 
-  log_task "Building from sources"
-  build_all
+
+  ###
+  ## Parse command line
+
+  if [ -f "$script_dir/$(basename $shflags_uri)" ]; then
+
+    . "$script_dir/shflags"
+    
+    DEFINE_boolean 'dep'      true        "Install the distro's built in dependencies"    'd'
+    DEFINE_boolean 'src'      true        'retrieve sources'                              's'
+    DEFINE_boolean 'build'    true        'Build'                                         'b'
+    #DEFINE_boolean 'babl'     true        'Retrieve and build babl'       'a'
+    #DEFINE_boolean 'gegl'     true        'Retrieve and build gegl'       'e'
+    #DEFINE_boolean 'gimp'     true        'Retrieve and build gimp'       'g'
+    DEFINE_string  'release'  'current'   'Specify the release to build'                  'r'
+    DEFINE_boolean 'painter'  false       'Apply the gimp painter patch before building'  'p'
+    DEFINE_boolean 'gps'      false       'Install Gimp Paint Studio'                     'G'
+    DEFINE_boolean 'launch'   true        'Launch gimp when the build is finished'        'l'
+    FLAGS_HELP="USAGE: $script_name [flags]"
+
+    # parse the command-line
+    if ! FLAGS "$@"; then 
+      flags_help
+      exit 0
+    fi
+    eval set -- "${FLAGS_ARGV}"
   
-  log_task "Launching your cutting edge gimp, behave yourself..."
-  test_build
+  else
+   FLAGS_TRUE=0
+   FLAGS_FALSE=1
+   FLAGS_dep=$FLAGS_TRUE
+   FLAGS_src=$FLAGS_TRUE
+   FLAGS_build=$FLAGS_TRUE
+   FLAGS_release='current'
+   FLAGS_painter=$FLAGS_FALSE
+   FLAGS_gps=$FLAGS_FALSE
+   FLAGS_launch=$FLAGS_TRUE
+  fi
 
-##
-###
+  ###
+  ## Default behaviour, used if shflags not present
+  
+    #if [ ! -f "$script_dir/$(basename $shflags_uri)" ]; then 
+
+    if [ $FLAGS_dep -eq $FLAGS_TRUE ]; then
+      log_task "Install distribution dependencies"
+      #install_apt_deps
+    fi
+
+    if [ $FLAGS_src -eq $FLAGS_TRUE ]; then
+      log_task "Retrieving or updating sources"
+      #mkdirs
+      #update_repositories
+    fi
+
+    if [ $FLAGS_build -eq $FLAGS_TRUE ]; then
+      log_task "Building from sources"
+      #build_all
+    fi
+    
+    if [ $FLAGS_launch -eq $FLAGS_TRUE ]; then
+      log_task "Launching your cutting edge gimp, behave yourself..."
+      #test_build
+    fi
+
+  ##
+  ###
