@@ -138,7 +138,7 @@
 
     install_apt_deps(){
       log_section "Installing required apt dependencies"
-      ${pkg_cmd} $deps || exit_with "aptitude fail while trying to install dependencies $deps"
+      ${pkg_cmd} $deps || exit_with "package management fail while trying to install dependencies $deps"
     }
 
     update_git_repository(){
@@ -205,6 +205,47 @@
 
 ###
 ## Main
+
+args_doc="-s  --src       Retrieve sources
+-b  --build     Build
+-a  --babl      Retrieve and build babl
+-e  --gegl      Retrieve and build gegl
+-g  --gimp      Retrieve and build gimp
+-r  --release=  Specify the release to build
+-p  --painter   Apply the gimp painter patch before building
+-G  --gps       Install Gimp Paint Studio"
+
+
+  parse_arg(){
+    while read line; do 
+      local a=$(echo "$line" | awk '{print $1}')
+      local b=$(echo "$line" | awk '{print $2}')
+      if [ "$1" == "$a" ] || [ "$1" == "$b" ]; then
+        return 0
+      fi
+    done < <(echo "$args_doc")
+    return 1
+  }
+
+  compil_args(){
+    local result="$@"
+    while read line; do 
+      local sub=$(echo "$line" | awk '{print $1}')
+      local arg=$(echo "$line" | awk '{print $2}')
+      result="${result/$arg/$sub}"
+    done < <(echo "$args_doc")
+    echo "$result"
+  }
+
+  readonly arguments="$(compil_args $@)"
+
+  for arg in $arguments; do
+    parse_arg "$arg" || exit_with "Unknow arg $arg"
+  done
+
+  exit 0
+
+
  
   log_task "Install distribution dependencies"
   install_apt_deps
