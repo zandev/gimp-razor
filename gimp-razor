@@ -1,5 +1,5 @@
 #!/bin/bash
-set -o nounset
+# set -o nounset
 # Copyright (C) 2010 Stéphane Robert Richard.
 # All rights reserved.
 #
@@ -70,6 +70,9 @@ set -o nounset
   export PATH="$gimp_install_dir/bin:$PATH"
   export PKG_CONFIG_PATH="$gimp_install_dir/lib/pkgconfig:$PKG_CONFIG_PATH"
   export LD_LIBRARY_PATH="$gimp_install_dir/lib:$LD_LIBRARY_PATH"
+
+  # Configure the flags you want to pass to the compiler
+  export CFLAGS="-march=native"
 
   # The package management command to run
   pkg_cmd="sudo apt-get install"
@@ -169,6 +172,7 @@ set -o nounset
         cd "$1"
         if git status; then
           log_message "Local repository $repo_name already exist, updating from remote master"
+          git checkout master
           git pull --rebase || exit_with "git failed while trying to pull from master repository $repo"
         else
           log_message "$1 is not a git repository, cleaning"
@@ -213,24 +217,44 @@ set -o nounset
       }
 
       local release="$FLAGS_checkout"
-      [ "$FLAGS_checkout" == 'current' ] && local release='master'
-      cd "$gimp_src_dir"
-      git checkout "$release"
-      
-      gegl_release=$(grep_release gegl)
-      babl_release=$(grep_release babl)
+      if [ "$FLAGS_checkout" == 'current' ]; then
+        for dir in {gimp,babl,gegl}_src_dir; do
+          cd "${!dir}"
+          git checkout master
+        done
+      else
+        cd "$gimp_src_dir"
+        git checkout "$FLAGS_checkout"
+        
+        babl_release=$(grep_release babl)
+        gegl_release=$(grep_release gegl)
 
-      log_message "GEGL version is $gegl_release"
-      log_message "BABL version is $babl_release"
+        log_message "GEGL version is $gegl_release"
+        log_message "BABL version is $babl_release"
+
+        cd "$babl_src_dir"
+        #git checkout "BABL_${babl_release//./_}"
+
+        cd "$gegl_src_dir"
+        #git checkout "GEGL_${gegl_release//./_}"
+      fi
     }
 
     build(){
       local name="$(basename $1)"
       log_section "Building $name"
       cd "$1"
+
+      log_message "Executing 'autogen.sh' for '$name'"
       ./autogen.sh --prefix="$gimp_install_dir" || exit_with "while executing ${name}'s autogen.sh"
+
+      log_message "Executing 'make clean' for '$name'"
       make clean || exit_with "while executing 'make clean' for $name"
+
+      log_message "Executing 'make -j $processors' for '$name'"
       make -j $processors || exit_with "while executing 'make' for $name"
+
+      log_message "Executing 'make install' for '$name'"
       make install || exit_with "while executing 'make install' for $name"
     }
 
@@ -241,7 +265,8 @@ set -o nounset
     }
 
     test_build(){
-      "$gimp_install_dir/bin/gimp-2.7" || exit_with "while trying to launch your rounded edge gimp :("
+      local cmd="$gimp_install_dir/bin/gimp-2.*" 
+      $cmd || exit_with "while trying to launch your rounded edge gimp :("
     }
 
   ##
@@ -336,18 +361,18 @@ set -o nounset
 
     if [ $FLAGS_dep -eq $FLAGS_TRUE ]; then
       log_task "Install distribution dependencies"
-      #install_pkg_deps
+      install_pkg_deps
     fi
   
     if [ $FLAGS_dep -eq $FLAGS_TRUE ]; then
       log_task "Install distribution dependencies"
-      #install_pkg_deps
+      install_pkg_deps
     fi
 
     if [ $FLAGS_src -eq $FLAGS_TRUE ]; then
       log_task "Retrieving or updating sources"
-      #mkdirs
-      #update_repositories
+      mkdirs
+      update_repositories
     fi
 
     log_task "Switching to release '$FLAGS_checkout'"
@@ -355,12 +380,12 @@ set -o nounset
 
     if [ $FLAGS_build -eq $FLAGS_TRUE ]; then
       log_task "Building from sources"
-      #build_all
+      build_all
     fi
     
     if [ $FLAGS_launch -eq $FLAGS_TRUE ]; then
       log_task "Launching your cutting edge gimp, behave yourself..."
-      #test_build
+      test_build
     fi
 
   ##
