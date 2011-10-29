@@ -121,6 +121,7 @@
       exit $?
     }
 
+
   ##
   ###
 
@@ -136,9 +137,9 @@
       done
     }
 
-    install_apt_deps(){
+    install_pkg_deps(){
       log_section "Installing required apt dependencies"
-      ${pkg_cmd} $deps || exit_with "package management fail while trying to install dependencies $deps"
+      ${pkg_cmd} $deps || exit_with "package management fails while trying to install the following dependencies $deps"
     }
 
     update_git_repository(){
@@ -174,6 +175,34 @@
     get_commit_id(){
       cd "$gimp_src_dir"
       echo "git describe" | tr 'A-Z' 'a-z' | sed 's/[^a-zA-Z0-9_-]/-/g'
+    }
+
+    show_releases(){
+      cd "$gimp_src_dir"
+      git branch -r | awk -F'/' '{print $2}'
+    }
+
+    show_tags(){
+      cd "$gimp_src_dir"
+      git tag
+    }
+
+    prepare_release(){
+      # LOCAL HELPER
+      grep_release(){
+        cat INSTALL | sed ':a;N;$!ba;s/\n/ /g' | grep -oi "$1 version *[0-9.]*" | grep -o '[0-9.]*'
+      }
+
+      local release="$FLAGS_checkout"
+      [ "$FLAGS_checkout" == 'current' ] && local release='master'
+      cd "$gimp_src_dir"
+      git checkout "$release"
+      
+      gegl_release=$(grep_release gegl)
+      babl_release=$(grep_release babl)
+
+      log_message "GEGL version is $gegl_release"
+      log_message "BABL version is $babl_release"
     }
 
     build(){
@@ -239,10 +268,13 @@
     #DEFINE_boolean 'babl'     true        'Retrieve and build babl'       'a'
     #DEFINE_boolean 'gegl'     true        'Retrieve and build gegl'       'e'
     #DEFINE_boolean 'gimp'     true        'Retrieve and build gimp'       'g'
-    DEFINE_string  'release'  'current'   'Specify the release to build'                  'r'
+    DEFINE_string  'checkout' 'current'   'Specify a branch or tag to checkout'           'r'
     DEFINE_boolean 'painter'  false       'Apply the gimp painter patch before building'  'p'
     DEFINE_boolean 'gps'      false       'Install Gimp Paint Studio'                     'G'
     DEFINE_boolean 'launch'   true        'Launch gimp when the build is finished'        'l'
+
+    DEFINE_string  'releases' ''          'List the available releases (git tags)'        'R'
+    DEFINE_string  'branches' ''          'List the available branches'                   'B'
     FLAGS_HELP="USAGE: $script_name [flags]"
 
     # parse the command-line
@@ -253,25 +285,25 @@
     eval set -- "${FLAGS_ARGV}"
   
   else
-   FLAGS_TRUE=0
-   FLAGS_FALSE=1
-   FLAGS_dep=$FLAGS_TRUE
-   FLAGS_src=$FLAGS_TRUE
-   FLAGS_build=$FLAGS_TRUE
-   FLAGS_release='current'
-   FLAGS_painter=$FLAGS_FALSE
-   FLAGS_gps=$FLAGS_FALSE
-   FLAGS_launch=$FLAGS_TRUE
+
+    FLAGS_TRUE=0
+    FLAGS_FALSE=1
+    FLAGS_dep=$FLAGS_TRUE
+    FLAGS_src=$FLAGS_TRUE
+    FLAGS_build=$FLAGS_TRUE
+    FLAGS_release='current'
+    FLAGS_painter=$FLAGS_FALSE
+    FLAGS_gps=$FLAGS_FALSE
+    FLAGS_launch=$FLAGS_TRUE
+
   fi
 
   ###
   ## Default behaviour, used if shflags not present
   
-    #if [ ! -f "$script_dir/$(basename $shflags_uri)" ]; then 
-
     if [ $FLAGS_dep -eq $FLAGS_TRUE ]; then
       log_task "Install distribution dependencies"
-      #install_apt_deps
+      #install_pkg_deps
     fi
 
     if [ $FLAGS_src -eq $FLAGS_TRUE ]; then
@@ -279,6 +311,9 @@
       #mkdirs
       #update_repositories
     fi
+
+    log_task "Switching to release '$FLAGS_checkout'"
+    prepare_release
 
     if [ $FLAGS_build -eq $FLAGS_TRUE ]; then
       log_task "Building from sources"
