@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -o nounset
 # Copyright (C) 2010 Stéphane Robert Richard.
 # All rights reserved.
 #
@@ -111,6 +111,10 @@
     log_message() {
       log_entry '-' "$@"
     }
+    
+    log_warning(){
+      log_entry '!' "WARNING: $@"
+    }
 
     ask_user() {
       echo -n "--  $@: " | fold -s -w 80
@@ -119,6 +123,21 @@
     exit_with(){
       echo "ERROR (exit code $?): $1"
       exit $?
+    }
+
+    has_info_flags(){
+      for flag in FLAGS_{releases,branches}; do
+        [ ${!flag} == $FLAGS_TRUE ] && return 0
+      done
+      return 1
+    }
+
+
+    has_action_flags(){
+      for flag in FLAGS_{dep,src,build,checkout}; do
+        [ ${!flag} == $FLAGS_TRUE ] && return 0
+      done
+      return 1
     }
 
 
@@ -177,12 +196,12 @@
       echo "git describe" | tr 'A-Z' 'a-z' | sed 's/[^a-zA-Z0-9_-]/-/g'
     }
 
-    show_releases(){
+    list_branches(){
       cd "$gimp_src_dir"
       git branch -r | awk -F'/' '{print $2}'
     }
 
-    show_tags(){
+    list_releases(){
       cd "$gimp_src_dir"
       git tag
     }
@@ -263,7 +282,7 @@
     . "$script_dir/shflags"
     
     DEFINE_boolean 'dep'      true        "Install the distro's built in dependencies"    'd'
-    DEFINE_boolean 'src'      true        'retrieve sources'                              's'
+    DEFINE_boolean 'src'      true        'Retrieve sources'                              's'
     DEFINE_boolean 'build'    true        'Build'                                         'b'
     #DEFINE_boolean 'babl'     true        'Retrieve and build babl'       'a'
     #DEFINE_boolean 'gegl'     true        'Retrieve and build gegl'       'e'
@@ -273,8 +292,8 @@
     DEFINE_boolean 'gps'      false       'Install Gimp Paint Studio'                     'G'
     DEFINE_boolean 'launch'   true        'Launch gimp when the build is finished'        'l'
 
-    DEFINE_string  'releases' ''          'List the available releases (git tags)'        'R'
-    DEFINE_string  'branches' ''          'List the available branches'                   'B'
+    DEFINE_boolean  'releases' false      'List the available releases (git tags)'        'R'
+    DEFINE_boolean  'branches' false      'List the available branches'                   'B'
     FLAGS_HELP="USAGE: $script_name [flags]"
 
     # parse the command-line
@@ -300,6 +319,25 @@
 
   ###
   ## Default behaviour, used if shflags not present
+
+    if [ $FLAGS_releases == $FLAGS_TRUE  ]; then
+      list_releases
+    fi
+
+    if [ $FLAGS_branches == $FLAGS_TRUE  ]; then
+      list_branches
+    fi
+
+    if has_info_flags && has_action_flags; then
+      log_warning "Infos flags used with action flags, actions skipped"
+      echo "run $script_name with --help (-h) flag for more informations"
+      exit 0
+    fi
+
+    if [ $FLAGS_dep -eq $FLAGS_TRUE ]; then
+      log_task "Install distribution dependencies"
+      #install_pkg_deps
+    fi
   
     if [ $FLAGS_dep -eq $FLAGS_TRUE ]; then
       log_task "Install distribution dependencies"
