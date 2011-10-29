@@ -1,0 +1,12 @@
+# Gimp Razor
+
+A script intended to automate the build of the latest gimp development snapshot and it's dependencies on linux. The primary target distro is Ubuntu 11.x, but it should be easy enought to use it in other distros: Your main concern will be to configure the dependencies and the package management command.
+
+# Usage
+
+Currently, configure the environment variables at the beginning of the script, then run.
+
+
+# Prerequiste
+
+git-core
