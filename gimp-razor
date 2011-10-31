@@ -1,5 +1,4 @@
 #!/bin/bash
-# set -o nounset
 # Copyright (C) 2010 Stéphane Robert Richard.
 # All rights reserved.
 #
@@ -29,14 +28,21 @@
 
 
 ###
-## readonly vars
+## Initialization
 
+  set -u
+  #set -e
+
+  # script/directory real name/location
   pushd $(dirname $(readlink -f "$BASH_SOURCE")) > /dev/null
   readonly script_dir="$PWD"
   popd > /dev/null
-
   readonly script_name=$(basename $0)
-  build_id="$(date +'%Y-%m-%d-%H-%M-%S')"
+
+  # Environment variables initialization
+  for var in PKG_CONFIG_PATH LD_LIBRARY_PATH; do
+    declare $var=''
+  done
 
 ##
 ###
@@ -53,6 +59,10 @@
 
   # Where should we retrieve and look for git repositories?
   src_dir="$HOME/src/git"
+  
+  # The scheme to use as an id for the current build
+  # The default below is a timestamp
+  build_id="$(date +'%Y-%m-%d-%H-%M-%S')"
 
   # Where do you want your razor sharp gimp to be installed?
   gimp_install_dir="$opt_dir/gimp/build_$build_id"
@@ -226,17 +236,17 @@
         cd "$gimp_src_dir"
         git checkout "$FLAGS_checkout"
         
-        babl_release=$(grep_release babl)
-        gegl_release=$(grep_release gegl)
+        local babl_release=$(grep_release babl)
+        local gegl_release=$(grep_release gegl)
 
-        log_message "GEGL version is $gegl_release"
-        log_message "BABL version is $babl_release"
-
+        log_message "Required GEGL version is $gegl_release or higher"
         cd "$babl_src_dir"
-        #git checkout "BABL_${babl_release//./_}"
+        if ! git checkout "BABL_${babl_release//./_}"; then
+          ask_user
 
+        log_message "Required BABL version is $babl_release or higher"
         cd "$gegl_src_dir"
-        #git checkout "GEGL_${gegl_release//./_}"
+        git checkout "GEGL_${gegl_release//./_}"
       fi
     }
 
@@ -280,67 +290,26 @@
 ## Main
 
   ###
-  ## shflags
-
-    readonly shflags_uri="http://shflags.googlecode.com/svn/tags/1.0.3/src/shflags"
-
-    if [ ! -f "$script_dir/shflags" ]; then
-      ask_user "$script_name rely on shflags to parse the cli arguments, but it's not present in $script_dir. While it's not mandatory, it's usefull if you want to specify some custom command line arguments. We can download it from $shflags_uri. Shall we proceed? [Y/n]"
-      read input
-      if [ "$(echo ${input:-Y} | tr [a-z] [A-Z])" == 'Y' ]; then
-        cd "$script_dir"
-        wget "$shflags_uri"
-      fi
-    fi
-
-
-  ##
-  ###
-
-
-
-  ###
   ## Parse command line
-
-  if [ -f "$script_dir/$(basename $shflags_uri)" ]; then
-
-    . "$script_dir/shflags"
-    
-    DEFINE_boolean 'dep'      true        "Install the distro's built in dependencies"    'd'
-    DEFINE_boolean 'src'      true        'Retrieve sources'                              's'
-    DEFINE_boolean 'build'    true        'Build'                                         'b'
-    #DEFINE_boolean 'babl'     true        'Retrieve and build babl'       'a'
-    #DEFINE_boolean 'gegl'     true        'Retrieve and build gegl'       'e'
-    #DEFINE_boolean 'gimp'     true        'Retrieve and build gimp'       'g'
-    DEFINE_string  'checkout' 'current'   'Specify a branch or tag to checkout'           'r'
-    DEFINE_boolean 'painter'  false       'Apply the gimp painter patch before building'  'p'
-    DEFINE_boolean 'gps'      false       'Install Gimp Paint Studio'                     'G'
-    DEFINE_boolean 'launch'   true        'Launch gimp when the build is finished'        'l'
-
-    DEFINE_boolean  'releases' false      'List the available releases (git tags)'        'R'
-    DEFINE_boolean  'branches' false      'List the available branches'                   'B'
-    FLAGS_HELP="USAGE: $script_name [flags]"
-
-    # parse the command-line
-    if ! FLAGS "$@"; then 
-      flags_help
-      exit 0
-    fi
-    eval set -- "${FLAGS_ARGV}"
+  ##
+  ## Actions:
+  ## dep
+  ## src
+  ## build
+  ## show releases
+  ## branches
   
-  else
-
     FLAGS_TRUE=0
     FLAGS_FALSE=1
     FLAGS_dep=$FLAGS_TRUE
     FLAGS_src=$FLAGS_TRUE
     FLAGS_build=$FLAGS_TRUE
-    FLAGS_release='current'
+    FLAGS_checkout='current'
     FLAGS_painter=$FLAGS_FALSE
     FLAGS_gps=$FLAGS_FALSE
     FLAGS_launch=$FLAGS_TRUE
-
-  fi
+    FLAGS_releases=false
+    FLAGS_branches=false
 
   ###
   ## Default behaviour, used if shflags not present
@@ -364,11 +333,6 @@
       install_pkg_deps
     fi
   
-    if [ $FLAGS_dep -eq $FLAGS_TRUE ]; then
-      log_task "Install distribution dependencies"
-      install_pkg_deps
-    fi
-
     if [ $FLAGS_src -eq $FLAGS_TRUE ]; then
       log_task "Retrieving or updating sources"
       mkdirs
