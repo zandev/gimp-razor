@@ -19,37 +19,48 @@
 	<!-- ========================================================================================= -->
 
 	<property name="config.dir" location="${basedir}/config" />
+	<property name="config.default.file" location="${config.dir}/default" />
 	<property name="recipe.name" value="default" />
 	<property name="recipe.file" location="${config.dir}/${recipe.name}" />
-	<propertyfile file="${recipe.file}" />
+	<property file="${recipe.file}" prefix="cfg"/>
 	<property environment="env" />
 
-	<property name="processors" value="$(cat /proc/cpuinfo | grep processor | wc -l)" />
-	<property name="build.id" value="${current.time}" />
+	<!-- User properties -->
+
+	<property name="cfg.processors" value="$(cat /proc/cpuinfo | grep processor | wc -l)" />
+	<property name="cfg.build.id" value="${current.time}" />
 
 
-	<property name="opt.dir" location="${user.home}/opt" />
-	<property name="src.dir" location="${user.home}/src/git" />
-	<property name="gimp.install.dir" location="${opt.dir}/gimp/build_${build.id}" />
-	<property name="gimp.src.dir" location="${src.dir}/gimp" />
-	<property name="babl.src.dir" location="${src.dir}/babl" />
-	<property name="gegl.src.dir" location="${src.dir}/gegl" />
+	<property name="cfg.opt.dir" location="${user.home}/opt" />
+	<property name="cfg.src.dir" location="${user.home}/src/git" />
+	<property name="cfg.gimp.install.dir" location="${cfg.opt.dir}/gimp/build_${cfg.build.id}" />
+	<property name="cfg.gimp.src.dir" location="${cfg.src.dir}/gimp" />
+	<property name="cfg.babl.src.dir" location="${cfg.src.dir}/babl" />
+	<property name="cfg.gegl.src.dir" location="${cfg.src.dir}/gegl" />
 
 
-	<property name="gimp.release" value="master" />
-	<property name="babl.release" value="master" />
-	<property name="gegl.release" value="master" />
-	<property name="pkg.cmd" value="sudo apt-get install" />
-	<property name="pkg.dependencies"
-	          value="fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby" />
+	<property name="cfg.gimp.release" value="master" />
+	<property name="cfg.babl.release" value="master" />
+	<property name="cfg.gegl.release" value="master" />
+	<property name="cfg.pkg.cmd" value="sudo apt-get install" />
+	<property name="cfg.pkg.dependencies" value="fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby" />
 
-	<property name="env.PATH" value="${gimp.install.dir}/bin:${env.PATH}" />
-	<property name="env.PKG_CONFIG_PATH" value="${gimp.install.dir}/lib/pkgconfig:${env.PKG_CONFIG_PATH}" />
-	<property name="env.LD_LIBRARY_PATH" value="${gimp.install.dir}/lib:${env.LD_LIBRARY_PATH}" />
-	<property name="env.CFLAGS" value="-march=native" />
+	<property name="cfg.env.PATH" value="${cfg.gimp.install.dir}/bin:${env.PATH}" />
+	<property name="cfg.env.PKG_CONFIG_PATH" value="${cfg.gimp.install.dir}/lib/pkgconfig:${env.PKG_CONFIG_PATH}" />
+	<property name="cfg.env.LD_LIBRARY_PATH" value="${cfg.gimp.install.dir}/lib:${env.LD_LIBRARY_PATH}" />
+	<property name="cfg.env.CFLAGS" value="-march=native" />
 
+	<property name="cfg.babl.configure.cmd" value="./autogen.sh --prefix=${cfg.gimp.install.dir}" />
+	<property name="cfg.babl.build.cmd" value="make clean; make -j ${cfg.processors}" />
+	<property name="cfg.babl.install.cmd" value="make install" />
 
+	<property name="cfg.gegl.configure.cmd" value="./autogen.sh --prefix=${cfg.gimp.install.dir}" />
+	<property name="cfg.gegl.build.cmd" value="make clean; make -j ${cfg.processors}" />
+	<property name="cfg.gegl.install.cmd" value="make install" />
 
+	<property name="cfg.gimp.configure.cmd" value="./autogen.sh --prefix=${cfg.gimp.install.dir}" />
+	<property name="cfg.gimp.build.cmd" value="make clean; make -j ${cfg.processors}" />
+	<property name="cfg.gimp.install.cmd" value="make install" />
 
 
 
@@ -61,37 +72,33 @@
           target: mkdirs              
          ================================= -->
 	<target name="mkdirs" depends="" description="Create required directories">
-		<mkdir dir="${opt.dir}" />
-		<mkdir dir="${babl.src.dir}" />
-		<mkdir dir="${gegl.src.dir}" />
-		<mkdir dir="${gimp.src.dir}" />
-		<mkdir dir="${gimp.install.dir}" />
+		<mkdir dir="${cfg.opt.dir}" />
+		<mkdir dir="${cfg.babl.src.dir}" />
+		<mkdir dir="${cfg.gegl.src.dir}" />
+		<mkdir dir="${cfg.gimp.src.dir}" />
+		<mkdir dir="${cfg.gimp.install.dir}" />
 	</target>
 
 	<!-- ================================= 
           target: installdeps              
          ================================= -->
-	<target name="installdeps"
-	        depends=""
-	        description="Installing required dependencies, using the configured package management system">
-		<shellscript shell="bash">${pkg.cmd} ${pkg.dependencies}</shellscript>
+	<target name="installdeps" depends="" description="Installing required dependencies, using the configured package management system">
+		<shellscript shell="bash">${cfg.pkg.cmd} ${cfg.pkg.dependencies}</shellscript>
 	</target>
 
 	<!-- ================================= 
           target: fetch              
          ================================= -->
-	<target name="fetch"
-	        depends="mkdirs, -clone-babl, -clone-gegl, -clone-gimp"
-	        description="Retrieve sources from their remote git repositories">
+	<target name="fetch" depends="mkdirs, -clone-babl, -clone-gegl, -clone-gimp" description="Retrieve sources from their remote git repositories">
 	</target>
 
 	<!-- ================================= 
           target: update              
          ================================= -->
 	<target name="update" depends="mkdirs,fetch" description="Update sources to the latest changes">
-		<git-update dir="${babl.src.dir}" />
-		<git-update dir="${gegl.src.dir}" />
-		<git-update dir="${gimp.src.dir}" />
+		<git-update dir="${cfg.babl.src.dir}" />
+		<git-update dir="${cfg.gegl.src.dir}" />
+		<git-update dir="${cfg.gimp.src.dir}" />
 	</target>
 
 	<!-- ================================= 
@@ -113,6 +120,18 @@
 	<target name="build" depends="-build-babl" description="Build babl, gegl and the gimp">
 
 	</target>
+
+	<!-- ================================= 
+          target: generate-config              
+         ================================= -->
+	<target name="generate-config" description="Generate a default configuration file">
+		<echoproperties destfile="${config.default.file}">
+			<propertyset>
+				<propertyref prefix="cfg" />
+			</propertyset>
+		</echoproperties>
+	</target>
+
 
 
 
@@ -209,9 +228,7 @@
 		<attribute name="name" />
 		<attribute name="dir" />
 		<sequential>
-			<input message="The directory '@{dir}' exist but is not a git repository, all content will be removed. Proceed (y/n)?"
-			       validargs="y,n"
-			       addproperty="do.delete.@{name}" />
+			<input message="The directory '@{dir}' exist but is not a git repository, all content will be removed. Proceed (y/n)?" validargs="y,n" addproperty="do.delete.@{name}" />
 			<condition property="do.delete.@{name}.abort">
 				<equals arg1="n" arg2="${do.delete.@{name}}" />
 			</condition>
@@ -226,45 +243,53 @@
 	<!-- ========================================================================================= -->
 
 	<!-- - - - - - - - - - - - - - - - - - 
+          target: -init-properties                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="-init-properties">
+
+	</target>
+
+
+	<!-- - - - - - - - - - - - - - - - - - 
           target: -probe-babl                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-probe-babl" depends="mkdirs">
-		<probe-git name="babl" dir="${babl.src.dir}" resultproperty="babl.git.status" />
+		<probe-git name="babl" dir="${cfg.babl.src.dir}" resultproperty="babl.git.status" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -probe-gegl                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-probe-gegl" depends="mkdirs">
-		<probe-git name="gegl" dir="${gegl.src.dir}" resultproperty="gegl.git.status" />
+		<probe-git name="gegl" dir="${cfg.gegl.src.dir}" resultproperty="gegl.git.status" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -probe-gimp                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-probe-gimp" depends="mkdirs">
-		<probe-git name="gimp" dir="${gimp.src.dir}" resultproperty="gimp.git.status" />
+		<probe-git name="gimp" dir="${cfg.gimp.src.dir}" resultproperty="gimp.git.status" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -prepare-babl-src-dir                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-prepare-babl-src-dir" if="${babl.src.dir.delete}">
-		<prepare-src-dir name="babl" dir="${babl.src.dir}" />
+		<prepare-src-dir name="babl" dir="${cfg.babl.src.dir}" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -prepare-gegl-src-dir                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-prepare-gegl-src-dir" if="${gegl.src.dir.delete}">
-		<prepare-src-dir name="gegl" dir="${gegl.src.dir}" />
+		<prepare-src-dir name="gegl" dir="${cfg.gegl.src.dir}" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -prepare-			">gimp-src-dir                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-prepare-gimp-src-dir" if="${gimp.src.dir.delete}">
-		<prepare-src-dir name="gimp" dir="${gimp.src.dir}" />
+		<prepare-src-dir name="gimp" dir="${cfg.gimp.src.dir}" />
 	</target>
 
 
@@ -272,51 +297,33 @@
           target: -clone-babl                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-clone-babl" depends="mkdirs, -probe-babl, -prepare-babl-src-dir" unless="${babl.src.dir.is.git}">
-		<git-clone repository="git://git.gnome.org/babl" dest="${babl.src.dir}" />
+		<git-clone repository="git://git.gnome.org/babl" dest="${cfg.babl.src.dir}" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -clone-gegl                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-clone-gegl" depends="mkdirs, -probe-gegl, -prepare-gegl-src-dir" unless="${gegl.src.dir.is.git}">
-		<git-clone repository="git://git.gnome.org/gegl" dest="${gegl.src.dir}" />
+		<git-clone repository="git://git.gnome.org/gegl" dest="${cfg.gegl.src.dir}" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -clone-gimp                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-clone-gimp" depends="mkdirs, -probe-gimp, -prepare-gimp-src-dir" unless="${gimp.src.dir.is.git}">
-		<git-clone repository="git://git.gnome.org/gimp" dest="${gimp.src.dir}" />
+		<git-clone repository="git://git.gnome.org/gimp" dest="${cfg.gimp.src.dir}" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -build-babl                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-build-babl">
-		<property name="babl.configure.cmd">
-			./autogen.sh --prefix="${gimp.install.dir}"
-		</property>
-
-		<property name="babl.build.cmd">
-			make clean
-			make -j ${processors}
-		</property>
-
-		<property name="babl.install.cmd">
-			make install
-		</property>
-
-		<propertyset id="babl.cmd">
-			<propertyref regex="babl.*.cmd" />
-		</propertyset>
-
-		<shellscript shell="bash" dir="${babl.src.dir}" flag="-c" command="
-			${babl.configure.cmd}
-			${babl.build.cmd}
-			${babl.install.cmd}
+		<shellscript shell="bash" dir="${cfg.babl.src.dir}" flag="-c" command="
+			${cfg.babl.configure.cmd}
+			${cfg.babl.build.cmd}
+			${cfg.babl.install.cmd}
 			">
 		</shellscript>
-
 	</target>
 
 

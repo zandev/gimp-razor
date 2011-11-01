@@ -1,1 +1,54 @@
-#Tue, 01 Nov 2011 17:14:23 +0100
+#Ant properties
+#Tue Nov 01 18:19:56 CET 2011
+cfg.babl.build.cmd=make clean; make -j $(cat /proc/cpuinfo | grep processor | wc -l)
+cfg.babl.configure.cmd=./autogen.sh --prefix\=/home/zanshine/opt/gimp/build_2011-11-01-18-19-56
+cfg.babl.install.cmd=make install
+cfg.babl.release=master
+cfg.babl.src.dir=/home/zanshine/src/git/babl
+cfg.build.id=2011-11-01-18-19-56
+cfg.cfg.babl.build.cmd=make clean; make -j $(cat /proc/cpuinfo | grep processor | wc -l)
+cfg.cfg.babl.configure.cmd=./autogen.sh --prefix\=/home/zanshine/opt/gimp/build_2011-11-01-18-15-35
+cfg.cfg.babl.install.cmd=make install
+cfg.cfg.babl.release=master
+cfg.cfg.babl.src.dir=/home/zanshine/src/git/babl
+cfg.cfg.build.id=2011-11-01-18-15-35
+cfg.cfg.env.CFLAGS=-march\=native
+cfg.cfg.env.LD_LIBRARY_PATH=/home/zanshine/opt/gimp/build_2011-11-01-18-15-35/lib\:/usr/lib/jvm/java-6-openjdk/jre/lib/i386/server\:/usr/lib/jvm/java-6-openjdk/jre/lib/i386\:/usr/lib/jvm/java-6-openjdk/jre/../lib/i386
+cfg.cfg.env.PATH=/home/zanshine/opt/gimp/build_2011-11-01-18-15-35/bin\:/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/usr/games
+cfg.cfg.env.PKG_CONFIG_PATH=/home/zanshine/opt/gimp/build_2011-11-01-18-15-35/lib/pkgconfig\:${env.PKG_CONFIG_PATH}
+cfg.cfg.gegl.build.cmd=make clean; make -j $(cat /proc/cpuinfo | grep processor | wc -l)
+cfg.cfg.gegl.configure.cmd=./autogen.sh --prefix\=/home/zanshine/opt/gimp/build_2011-11-01-18-15-35
+cfg.cfg.gegl.install.cmd=make install
+cfg.cfg.gegl.release=master
+cfg.cfg.gegl.src.dir=/home/zanshine/src/git/gegl
+cfg.cfg.gimp.build.cmd=make clean; make -j $(cat /proc/cpuinfo | grep processor | wc -l)
+cfg.cfg.gimp.configure.cmd=./autogen.sh --prefix\=/home/zanshine/opt/gimp/build_2011-11-01-18-15-35
+cfg.cfg.gimp.install.cmd=make install
+cfg.cfg.gimp.install.dir=/home/zanshine/opt/gimp/build_2011-11-01-18-15-35
+cfg.cfg.gimp.release=master
+cfg.cfg.gimp.src.dir=/home/zanshine/src/git/gimp
+cfg.cfg.opt.dir=/home/zanshine/opt
+cfg.cfg.pkg.cmd=sudo apt-get install
+cfg.cfg.pkg.dependencies=fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby
+cfg.cfg.processors=$(cat /proc/cpuinfo | grep processor | wc -l)
+cfg.cfg.src.dir=/home/zanshine/src/git
+cfg.env.CFLAGS=-march\=native
+cfg.env.LD_LIBRARY_PATH=/home/zanshine/opt/gimp/build_2011-11-01-18-19-56/lib\:/usr/lib/jvm/java-6-openjdk/jre/lib/i386/server\:/usr/lib/jvm/java-6-openjdk/jre/lib/i386\:/usr/lib/jvm/java-6-openjdk/jre/../lib/i386
+cfg.env.PATH=/home/zanshine/opt/gimp/build_2011-11-01-18-19-56/bin\:/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/usr/games
+cfg.env.PKG_CONFIG_PATH=/home/zanshine/opt/gimp/build_2011-11-01-18-19-56/lib/pkgconfig\:${env.PKG_CONFIG_PATH}
+cfg.gegl.build.cmd=make clean; make -j $(cat /proc/cpuinfo | grep processor | wc -l)
+cfg.gegl.configure.cmd=./autogen.sh --prefix\=/home/zanshine/opt/gimp/build_2011-11-01-18-19-56
+cfg.gegl.install.cmd=make install
+cfg.gegl.release=master
+cfg.gegl.src.dir=/home/zanshine/src/git/gegl
+cfg.gimp.build.cmd=make clean; make -j $(cat /proc/cpuinfo | grep processor | wc -l)
+cfg.gimp.configure.cmd=./autogen.sh --prefix\=/home/zanshine/opt/gimp/build_2011-11-01-18-19-56
+cfg.gimp.install.cmd=make install
+cfg.gimp.install.dir=/home/zanshine/opt/gimp/build_2011-11-01-18-19-56
+cfg.gimp.release=master
+cfg.gimp.src.dir=/home/zanshine/src/git/gimp
+cfg.opt.dir=/home/zanshine/opt
+cfg.pkg.cmd=sudo apt-get install
+cfg.pkg.dependencies=fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby
+cfg.processors=$(cat /proc/cpuinfo | grep processor | wc -l)
+cfg.src.dir=/home/zanshine/src/git
