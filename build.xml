@@ -5,11 +5,11 @@
 	<!-- 									Properties                                			   -->
 	<!-- ========================================================================================= -->
 
+	<property name="config.dir" location="${basedir}/config" />
 	<property name="recipe.name" value="default" />
-	<property name="recipe.file" location="${basedir}/${recipe.name}" />
+	<property name="recipe.file" location="${config.dir}/${recipe.name}" />
+	<propertyfile file="${recipe.file}" />
 	<property environment="env" />
-	<propertyfile file="${recipe.file}">
-	</propertyfile>
 
 
 
@@ -185,15 +185,17 @@
 	</macrodef>
 
 	<macrodef name="prepare-src-dir">
+		<attribute name="name" />
+		<attribute name="dir" />
 		<sequential>
-			<input message="The directory '${babl.src.dir}' exist but is not a git repository, all content will be removed. Proceed (y/n)?"
+			<input message="The directory '@{dir}' exist but is not a git repository, all content will be removed. Proceed (y/n)?"
 			       validargs="y,n"
-			       addproperty="do.delete.babl" />
-			<condition property="do.delete.babl.abort">
-				<equals arg1="n" arg2="${do.delete.babl}" />
+			       addproperty="do.delete.@{name}" />
+			<condition property="do.delete.@{name}.abort">
+				<equals arg1="n" arg2="${do.delete.@{name}}" />
 			</condition>
-			<fail if="do.delete.babl.abort">${ant.project.name} aborted by user. You may need to fix the directory '${babl.src.dir}' manually and run ${ant.project.name} again.</fail>
-			<delete dir="${babl.src.dir}" />
+			<fail if="do.delete.@{name}.abort">${ant.project.name} aborted by user. You may need to fix the directory '@{dir}' manually and run ${ant.project.name} again.</fail>
+			<delete dir="@{dir}" />
 		</sequential>
 	</macrodef>
 
@@ -227,14 +229,21 @@
           target: -prepare-babl-src-dir                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-prepare-babl-src-dir" if="${babl.src.dir.delete}">
-		<input message="The directory '${babl.src.dir}' exist but is not a git repository, all content will be removed. Proceed (y/n)?"
-		       validargs="y,n"
-		       addproperty="do.delete.babl" />
-		<condition property="do.delete.babl.abort">
-			<equals arg1="n" arg2="${do.delete.babl}" />
-		</condition>
-		<fail if="do.delete.babl.abort">${ant.project.name} aborted by user. You may need to fix the directory '${babl.src.dir}' manually and run ${ant.project.name} again.</fail>
-		<delete dir="${babl.src.dir}" />
+		<prepare-src-dir name="babl" dir="${babl.src.dir}" />
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: -prepare-gegl-src-dir                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="-prepare-gegl-src-dir" if="${gegl.src.dir.delete}">
+		<prepare-src-dir name="gegl" dir="${gegl.src.dir}" />
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: -prepare-gimp-src-dir                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="-prepare-gimp-src-dir" if="${gimp.src.dir.delete}">
+		<prepare-src-dir name="gimp" dir="${gimp.src.dir}" />
 	</target>
 
 
@@ -248,14 +257,14 @@
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -clone-gegl                      
          - - - - - - - - - - - - - - - - - -->
-	<target name="-clone-gegl" depends="mkdirs, -probe-gegl" unless="${gegl.src.dir.is.git}">
+	<target name="-clone-gegl" depends="mkdirs, -probe-gegl, -prepare-gegl-src-dir" unless="${gegl.src.dir.is.git}">
 		<git-clone repository="git://git.gnome.org/gegl" dest="${gegl.src.dir}" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -clone-gimp                      
          - - - - - - - - - - - - - - - - - -->
-	<target name="-clone-gimp" depends="mkdirs, -probe-gimp" unless="${gimp.src.dir.is.git}">
+	<target name="-clone-gimp" depends="mkdirs, -probe-gimp, -prepare-gimp-src-dir" unless="${gimp.src.dir.is.git}">
 		<git-clone repository="git://git.gnome.org/gimp" dest="${gimp.src.dir}" />
 	</target>
 
