@@ -4,11 +4,11 @@
 	<!-- 									Datatypes                                			   -->
 	<!-- ========================================================================================= -->
 
-	<taskdef resource="net/sf/antcontrib/antcontrib.properties">
+	<!--taskdef resource="net/sf/antcontrib/antcontrib.properties">
 		<classpath>
 			<pathelement location="/usr/share/java/ant-contrib-1.0b3.jar" />
 		</classpath>
-	</taskdef>
+	</taskdef-->
 
 	<tstamp>
 		<format property="current.time" pattern="yyyy-MM-dd-HH-mm-ss" />
@@ -120,6 +120,19 @@
 	<!-- ========================================================================================= -->
 	<!-- 									Macrodefs	                                		   -->
 	<!-- ========================================================================================= -->
+
+	<macrodef name="shellscript">
+		<attribute name="shell" />
+		<attribute name="dir" />
+		<attribute name="flag" />
+		<attribute name="command" />
+		<sequential>
+			<exec executable="@{shell}" dir="@{dir}">
+				<arg value="@{flag}" />
+				<arg value="@{command}" />
+			</exec>
+		</sequential>
+	</macrodef>
 
 	<macrodef name="git">
 		<attribute name="command" />
@@ -248,7 +261,7 @@
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
-          target: -prepare-gimp-src-dir                      
+          target: -prepare-			">gimp-src-dir                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-prepare-gimp-src-dir" if="${gimp.src.dir.delete}">
 		<prepare-src-dir name="gimp" dir="${gimp.src.dir}" />
@@ -297,14 +310,12 @@
 			<propertyref regex="babl.*.cmd" />
 		</propertyset>
 
-		<exec executable="bash" dir="${babl.src.dir}">
-			<arg value="-c" />
-			<arg value="
-				${babl.configure.cmd}
-				${babl.build.cmd}
-				${babl.install.cmd}
-			" />
-		</exec>
+		<shellscript shell="bash" dir="${babl.src.dir}" flag="-c" command="
+			${babl.configure.cmd}
+			${babl.build.cmd}
+			${babl.install.cmd}
+			">
+		</shellscript>
 
 	</target>
 
