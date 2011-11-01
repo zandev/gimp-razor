@@ -8,6 +8,7 @@
 
 	<property name="recipe.name" value="default" />
 	<property name="recipe.file" location="${basedir}/${recipe.name}" />
+	<property environment="env" />
 	<propertyfile file="${recipe.file}">
 	</propertyfile>
 
@@ -15,30 +16,27 @@
 		<format property="current.time" pattern="yyyy-MM-dd-HH-mm-ss" />
 	</tstamp>
 
-	<property name="opt.dir" value="${user.home}/opt" />
-	<property name="src.dir" value="${user.home}/src/git" />
+
+	<property name="opt.dir" location="${user.home}/opt" />
+	<property name="src.dir" location="${user.home}/src/git" />
+	<property name="gimp.install.dir" location="${opt.dir}/gimp/build_${build.id}" />
+	<property name="gimp.src.dir" location="${src.dir}/gimp" />
+	<property name="babl.src.dir" location="${src.dir}/babl" />
+	<property name="gegl.src.dir" location="${src.dir}/gegl" />
+
+	<property name="processors" value="$(cat /proc/cpuinfo | grep processor | wc -l)" />
 	<property name="build.id" value="${current.time}" />
 
-	<property name="gimp.install.dir" value="${opt.dir}/gimp/build_${build.id}" />
-	<property name="gimp.src.dir" value="${src.dir}/gimp" />
-	<property name="babl.src.dir" value="${src.dir}/babl" />
-	<property name="gegl.src.dir" value="${src.dir}/gegl" />
-	<property name="processors" value="$(cat /proc/cpuinfo | grep processor | wc -l)" />
 	<property name="gimp.release" value="master" />
 	<property name="babl.release" value="master" />
 	<property name="gegl.release" value="master" />
 	<property name="pkg.cmd" value="sudo apt-get install" />
 	<property name="pkg.dependencies"
-	          value="fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby"
-	/>
+	          value="fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby" />
 
-	<propertyset id="environment">
-		<propertyref prefix="env" />
-	</propertyset>
-
-	<property name="env.PATH" value="${gimp.install.dir}/bin:$PATH" />
-	<property name="env.PKG_CONFIG_PATH" value="${gimp.install.dir}/lib/pkgconfig:$PKG_CONFIG_PATH" />
-	<property name="env.LD_LIBRARY_PATH" value="${gimp.install.dir}/lib:$LD_LIBRARY_PATH" />
+	<property name="env.PATH" value="${gimp.install.dir}/bin:${env.PATH}" />
+	<property name="env.PKG_CONFIG_PATH" value="${gimp.install.dir}/lib/pkgconfig:${env.PKG_CONFIG_PATH}" />
+	<property name="env.LD_LIBRARY_PATH" value="${gimp.install.dir}/lib:${env.LD_LIBRARY_PATH}" />
 	<property name="env.CFLAGS" value="-march=native" />
 
 	<macrodef name="git">
@@ -94,27 +92,33 @@
          ================================= -->
 	<target name="mkdirs" depends="" description="Create required directories">
 		<mkdir dir="${opt.dir}" />
-		<mkdir dir="${src.dir}" />
+		<mkdir dir="${babl.src.dir}" />
+		<mkdir dir="${gegl.src.dir}" />
+		<mkdir dir="${gimp.src.dir}" />
 		<mkdir dir="${gimp.install.dir}" />
 	</target>
 
 	<!-- ================================= 
-          target: dep              
+          target: installdeps              
          ================================= -->
-	<target name="dep" depends="" description="Installing required dependencies">
+	<target name="installdeps"
+	        depends=""
+	        description="Installing required dependencies, using the configured package management system">
 		<shellscript shell="bash">${pkg.cmd} ${pkg.dependencies}</shellscript>
 	</target>
 
 	<!-- ================================= 
           target: fetch              
          ================================= -->
-	<target name="fetch" depends="mkdirs, -gitclonebabl, -gitclonegegl, -gitclonegimp" description="Retrieve sources">
+	<target name="fetch"
+	        depends="mkdirs, -clone-babl, -clone-gegl, -clone-gimp"
+	        description="Retrieve sources from their remote git repositories">
 	</target>
 
 	<!-- ================================= 
           target: update              
          ================================= -->
-	<target name="update" depends="mkdirs,fetch" description="Update sources">
+	<target name="update" depends="mkdirs,fetch" description="Update sources to the latest changes">
 		<git-update dir="${babl.src.dir}" />
 		<git-update dir="${gegl.src.dir}" />
 		<git-update dir="${gimp.src.dir}" />
@@ -134,33 +138,38 @@
 	<target name="help" depends="usage" />
 
 	<!-- - - - - - - - - - - - - - - - - - 
-          target: -probebabl                      
+          target: -probe-babl                      
          - - - - - - - - - - - - - - - - - -->
-	<target name="-probebabl" depends="mkdirs">
+	<target name="-probe-babl" depends="mkdirs">
 		<property name="babl.git.status" value="" />
 		<exec executable="git" dir="${babl.src.dir}" failonerror="no" resultproperty="${babl.git.status}">
 			<arg value="status" />
 		</exec>
-		<condition property="babl.clone.skip">
-			<not>
-				<equals arg1="${babl.git.status}" arg2="0" trim="true" />
-			</not>
+		<condition property="babl.src.dir.is.git">
+			<equals arg1="${babl.git.status}" arg2="0" trim="true" />
 		</condition>
 		<condition property="babl.src.dir.exist">
-			<available file="${babl.src.dir}" type="dir">
-			</available>
+			<available file="${babl.src.dir}" type="dir" />
+		</condition>
+		<condition property="babl.src.dir.delete">
+			<and>
+				<isset property="babl.src.dir.exist" />
+				<not>
+					<isset property="babl.src.dir.is.git" />
+				</not>
+			</and>
 		</condition>
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
-          target: -probegegl                      
+          target: -probe-gegl                      
          - - - - - - - - - - - - - - - - - -->
-	<target name="-probegegl" depends="mkdirs">
+	<target name="-probe-gegl" depends="mkdirs">
 		<property name="gegl.git.status" value="" />
 		<exec executable="git" dir="${gegl.src.dir}" failonerror="no" resultproperty="${gegl.git.status}">
 			<arg value="status" />
 		</exec>
-		<condition property="gegl.clone.skip">
+		<condition property="gegl.src.dir.is.git">
 			<not>
 				<equals arg1="${gegl.git.status}" arg2="0" trim="true" />
 			</not>
@@ -172,14 +181,14 @@
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
-          target: -probegimp                      
+          target: -probe-gimp                      
          - - - - - - - - - - - - - - - - - -->
-	<target name="-probegimp" depends="mkdirs">
+	<target name="-probe-gimp" depends="mkdirs">
 		<property name="gimp.git.status" value="" />
 		<exec executable="git" dir="${gimp.src.dir}" failonerror="no" resultproperty="${gimp.git.status}">
 			<arg value="status" />
 		</exec>
-		<condition property="gimp.clone.skip">
+		<condition property="gimp.src.dir.is.git">
 			<not>
 				<equals arg1="${gimp.git.status}" arg2="0" trim="true" />
 			</not>
@@ -191,23 +200,38 @@
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
-          target: clone-babl                      
+          target: -prepare-babl-src-dir                      
          - - - - - - - - - - - - - - - - - -->
-	<target name="-gitclonebabl" depends="mkdirs, -probebabl" unless="${babl.clone.skip}">
+	<target name="-prepare-babl-src-dir" if="${babl.src.dir.delete}">
+		<input message="The directory '${babl.src.dir}' exist but is not a git repository, all content will be removed. Proceed (y/n)?"
+		       validargs="y,n"
+		       addproperty="do.delete.babl" />
+		<condition property="do.delete.babl.abort">
+			<equals arg1="n" arg2="${do.delete.babl}" />
+		</condition>
+		<fail if="do.delete.babl.abort">${ant.project.name} aborted by user. You may need to fix the directory '${babl.src.dir}' manually and run ${ant.project.name} again.</fail>
+		<delete dir="${babl.src.dir}" />
+	</target>
+
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: -clone-babl                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="-clone-babl" depends="mkdirs, -probe-babl, -prepare-babl-src-dir" unless="${babl.src.dir.is.git}">
 		<git-clone repository="git://git.gnome.org/babl" dest="${babl.src.dir}" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
-          target: clone-gegl                      
+          target: -clone-gegl                      
          - - - - - - - - - - - - - - - - - -->
-	<target name="-gitclonegegl" depends="mkdirs, -probegegl" unless="${gegl.clone.skip}">
+	<target name="-clone-gegl" depends="mkdirs, -probe-gegl" unless="${gegl.src.dir.is.git}">
 		<git-clone repository="git://git.gnome.org/gegl" dest="${gegl.src.dir}" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
-          target: clone-gimp                      
+          target: -clone-gimp                      
          - - - - - - - - - - - - - - - - - -->
-	<target name="-gitclonegimp" depends="mkdirs, -probegimp" unless="${gimp.clone.skip}">
+	<target name="-clone-gimp" depends="mkdirs, -probe-gimp" unless="${gimp.src.dir.is.git}">
 		<git-clone repository="git://git.gnome.org/gimp" dest="${gimp.src.dir}" />
 	</target>
 
