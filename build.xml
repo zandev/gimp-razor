@@ -1,10 +1,9 @@
 <project name="gimp-razor" default="help">
 
-	<taskdef resource="net/sf/antcontrib/antcontrib.properties">
-		<classpath>
-			<pathelement location="/usr/share/java/ant-contrib-1.0b3.jar" />
-		</classpath>
-	</taskdef>
+
+	<!-- ========================================================================================= -->
+	<!-- 									Properties                                			   -->
+	<!-- ========================================================================================= -->
 
 	<property name="recipe.name" value="default" />
 	<property name="recipe.file" location="${basedir}/${recipe.name}" />
@@ -12,9 +11,6 @@
 	<propertyfile file="${recipe.file}">
 	</propertyfile>
 
-	<tstamp>
-		<format property="current.time" pattern="yyyy-MM-dd-HH-mm-ss" />
-	</tstamp>
 
 
 	<property name="opt.dir" location="${user.home}/opt" />
@@ -39,53 +35,27 @@
 	<property name="env.LD_LIBRARY_PATH" value="${gimp.install.dir}/lib:${env.LD_LIBRARY_PATH}" />
 	<property name="env.CFLAGS" value="-march=native" />
 
-	<macrodef name="git">
-		<attribute name="command" />
-		<attribute name="dir" default="" />
-		<element name="args" optional="true" />
-		<sequential>
-			<echo message="git @{command}" />
-			<exec executable="git" dir="@{dir}" failonerror="no">
-				<arg value="@{command}" />
-				<args />
-			</exec>
-		</sequential>
-	</macrodef>
-
-	<macrodef name="git-clone">
-		<attribute name="repository" />
-		<attribute name="dest" />
-		<sequential>
-			<git command="clone">
-				<args>
-					<arg value="@{repository}" />
-					<arg value="@{dest}" />
-				</args>
-			</git>
-		</sequential>
-	</macrodef>
 
 
-	<macrodef name="git-update">
-		<attribute name="dir" />
-		<sequential>
-			<echo>--------------------------------</echo>
-			<echo>Updating @{dir}</echo>
-			<echo>--------------------------------</echo>
-			<git command="checkout" dir="@{dir}">
-				<args>
-					<arg value="master" />
-				</args>
-			</git>
-			<git command="pull" dir="@{dir}">
-				<args>
-					<arg value="--rebase" />
-				</args>
-			</git>
-		</sequential>
-	</macrodef>
+	<!-- ========================================================================================= -->
+	<!-- 									Datatypes                                			   -->
+	<!-- ========================================================================================= -->
+
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties">
+		<classpath>
+			<pathelement location="/usr/share/java/ant-contrib-1.0b3.jar" />
+		</classpath>
+	</taskdef>
+
+	<tstamp>
+		<format property="current.time" pattern="yyyy-MM-dd-HH-mm-ss" />
+	</tstamp>
 
 
+
+	<!-- ========================================================================================= -->
+	<!-- 								Public targets	                                		   -->
+	<!-- ========================================================================================= -->
 
 	<!-- ================================= 
           target: mkdirs              
@@ -137,66 +107,120 @@
 
 	<target name="help" depends="usage" />
 
+
+
+	<!-- ========================================================================================= -->
+	<!-- 									Macrodefs	                                		   -->
+	<!-- ========================================================================================= -->
+
+	<macrodef name="git">
+		<attribute name="command" />
+		<attribute name="dir" default="" />
+		<element name="args" optional="true" />
+		<sequential>
+			<echo message="git @{command}" />
+			<exec executable="git" dir="@{dir}" failonerror="no">
+				<arg value="@{command}" />
+				<args />
+			</exec>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="git-clone">
+		<attribute name="repository" />
+		<attribute name="dest" />
+		<sequential>
+			<git command="clone">
+				<args>
+					<arg value="@{repository}" />
+					<arg value="@{dest}" />
+				</args>
+			</git>
+		</sequential>
+	</macrodef>
+
+
+	<macrodef name="git-update">
+		<attribute name="dir" />
+		<sequential>
+			<echo>--------------------------------</echo>
+			<echo>Updating @{dir}</echo>
+			<echo>--------------------------------</echo>
+			<git command="checkout" dir="@{dir}">
+				<args>
+					<arg value="master" />
+				</args>
+			</git>
+			<git command="pull" dir="@{dir}">
+				<args>
+					<arg value="--rebase" />
+				</args>
+			</git>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="probe-git">
+		<attribute name="name" />
+		<attribute name="dir" />
+		<attribute name="resultproperty" />
+		<sequential>
+			<exec executable="git" dir="@{dir}" failonerror="no" resultproperty="@{resultproperty}">
+				<arg value="status" />
+			</exec>
+			<condition property="@{name}.src.dir.is.git">
+				<equals arg1="${@{resultproperty}}" arg2="0" trim="true" />
+			</condition>
+			<condition property="@{name}.src.dir.exist">
+				<available file="@{dir}" type="dir" />
+			</condition>
+			<condition property="@{name}.src.dir.delete">
+				<and>
+					<isset property="@{name}.src.dir.exist" />
+					<not>
+						<isset property="@{name}.src.dir.is.git" />
+					</not>
+				</and>
+			</condition>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="prepare-src-dir">
+		<sequential>
+			<input message="The directory '${babl.src.dir}' exist but is not a git repository, all content will be removed. Proceed (y/n)?"
+			       validargs="y,n"
+			       addproperty="do.delete.babl" />
+			<condition property="do.delete.babl.abort">
+				<equals arg1="n" arg2="${do.delete.babl}" />
+			</condition>
+			<fail if="do.delete.babl.abort">${ant.project.name} aborted by user. You may need to fix the directory '${babl.src.dir}' manually and run ${ant.project.name} again.</fail>
+			<delete dir="${babl.src.dir}" />
+		</sequential>
+	</macrodef>
+
+
+	<!-- ========================================================================================= -->
+	<!-- 								Private targets	                                		   -->
+	<!-- ========================================================================================= -->
+
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -probe-babl                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-probe-babl" depends="mkdirs">
-		<property name="babl.git.status" value="" />
-		<exec executable="git" dir="${babl.src.dir}" failonerror="no" resultproperty="${babl.git.status}">
-			<arg value="status" />
-		</exec>
-		<condition property="babl.src.dir.is.git">
-			<equals arg1="${babl.git.status}" arg2="0" trim="true" />
-		</condition>
-		<condition property="babl.src.dir.exist">
-			<available file="${babl.src.dir}" type="dir" />
-		</condition>
-		<condition property="babl.src.dir.delete">
-			<and>
-				<isset property="babl.src.dir.exist" />
-				<not>
-					<isset property="babl.src.dir.is.git" />
-				</not>
-			</and>
-		</condition>
+		<probe-git name="babl" dir="${babl.src.dir}" resultproperty="babl.git.status" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -probe-gegl                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-probe-gegl" depends="mkdirs">
-		<property name="gegl.git.status" value="" />
-		<exec executable="git" dir="${gegl.src.dir}" failonerror="no" resultproperty="${gegl.git.status}">
-			<arg value="status" />
-		</exec>
-		<condition property="gegl.src.dir.is.git">
-			<not>
-				<equals arg1="${gegl.git.status}" arg2="0" trim="true" />
-			</not>
-		</condition>
-		<condition property="gegl.src.dir.exist">
-			<available file="${gegl.src.dir}" type="dir">
-			</available>
-		</condition>
+		<probe-git name="gegl" dir="${gegl.src.dir}" resultproperty="gegl.git.status" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
           target: -probe-gimp                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-probe-gimp" depends="mkdirs">
-		<property name="gimp.git.status" value="" />
-		<exec executable="git" dir="${gimp.src.dir}" failonerror="no" resultproperty="${gimp.git.status}">
-			<arg value="status" />
-		</exec>
-		<condition property="gimp.src.dir.is.git">
-			<not>
-				<equals arg1="${gimp.git.status}" arg2="0" trim="true" />
-			</not>
-		</condition>
-		<condition property="gimp.src.dir.exist">
-			<available file="${gimp.src.dir}" type="dir">
-			</available>
-		</condition>
+		<probe-git name="gimp" dir="${gimp.src.dir}" resultproperty="gimp.git.status" />
 	</target>
 
 	<!-- - - - - - - - - - - - - - - - - - 
