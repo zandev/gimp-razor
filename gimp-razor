@@ -1,4 +1,5 @@
 #!/bin/bash
 
-export ANT_ARGS="-logger org.apache.tools.ant.listener.AnsiColorLogger" 
-ant $@
+ant -Dcfg.processors="$(cat /proc/cpuinfo | grep processor | wc -l)"\
+	-logger org.apache.tools.ant.listener.AnsiColorLogger\
+	$@

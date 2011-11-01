@@ -19,48 +19,18 @@
 	<!-- ========================================================================================= -->
 
 	<property name="config.dir" location="${basedir}/config" />
-	<property name="config.default.file" location="${config.dir}/default" />
-	<property name="recipe.name" value="default" />
-	<property name="recipe.file" location="${config.dir}/${recipe.name}" />
-	<property file="${recipe.file}" prefix="cfg"/>
+	<property name="recipes.dir" location="${basedir}/recipes" />
+	<property name="recipe.name" value="master" />
+	<property name="recipe.file" location="${recipes.dir}/${recipe.name}" />
+
+	<!-- User configurable properties -->
 	<property environment="env" />
-
-	<!-- User properties -->
-
-	<property name="cfg.processors" value="$(cat /proc/cpuinfo | grep processor | wc -l)" />
-	<property name="cfg.build.id" value="${current.time}" />
-
-
-	<property name="cfg.opt.dir" location="${user.home}/opt" />
-	<property name="cfg.src.dir" location="${user.home}/src/git" />
-	<property name="cfg.gimp.install.dir" location="${cfg.opt.dir}/gimp/build_${cfg.build.id}" />
-	<property name="cfg.gimp.src.dir" location="${cfg.src.dir}/gimp" />
-	<property name="cfg.babl.src.dir" location="${cfg.src.dir}/babl" />
-	<property name="cfg.gegl.src.dir" location="${cfg.src.dir}/gegl" />
+	<property file="${recipe.file}" prefix="cfg" />
+	
+	<!-- Default configurable properties-->
+	<property file="${config.dir}/build.properties" prefix="cfg"/>
 
 
-	<property name="cfg.gimp.release" value="master" />
-	<property name="cfg.babl.release" value="master" />
-	<property name="cfg.gegl.release" value="master" />
-	<property name="cfg.pkg.cmd" value="sudo apt-get install" />
-	<property name="cfg.pkg.dependencies" value="fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby" />
-
-	<property name="cfg.env.PATH" value="${cfg.gimp.install.dir}/bin:${env.PATH}" />
-	<property name="cfg.env.PKG_CONFIG_PATH" value="${cfg.gimp.install.dir}/lib/pkgconfig:${env.PKG_CONFIG_PATH}" />
-	<property name="cfg.env.LD_LIBRARY_PATH" value="${cfg.gimp.install.dir}/lib:${env.LD_LIBRARY_PATH}" />
-	<property name="cfg.env.CFLAGS" value="-march=native" />
-
-	<property name="cfg.babl.configure.cmd" value="./autogen.sh --prefix=${cfg.gimp.install.dir}" />
-	<property name="cfg.babl.build.cmd" value="make clean; make -j ${cfg.processors}" />
-	<property name="cfg.babl.install.cmd" value="make install" />
-
-	<property name="cfg.gegl.configure.cmd" value="./autogen.sh --prefix=${cfg.gimp.install.dir}" />
-	<property name="cfg.gegl.build.cmd" value="make clean; make -j ${cfg.processors}" />
-	<property name="cfg.gegl.install.cmd" value="make install" />
-
-	<property name="cfg.gimp.configure.cmd" value="./autogen.sh --prefix=${cfg.gimp.install.dir}" />
-	<property name="cfg.gimp.build.cmd" value="make clean; make -j ${cfg.processors}" />
-	<property name="cfg.gimp.install.cmd" value="make install" />
 
 
 
@@ -82,14 +52,18 @@
 	<!-- ================================= 
           target: installdeps              
          ================================= -->
-	<target name="installdeps" depends="" description="Installing required dependencies, using the configured package management system">
+	<target name="installdeps"
+	        depends=""
+	        description="Installing required dependencies, using the configured package management system">
 		<shellscript shell="bash">${cfg.pkg.cmd} ${cfg.pkg.dependencies}</shellscript>
 	</target>
 
 	<!-- ================================= 
           target: fetch              
          ================================= -->
-	<target name="fetch" depends="mkdirs, -clone-babl, -clone-gegl, -clone-gimp" description="Retrieve sources from their remote git repositories">
+	<target name="fetch"
+	        depends="mkdirs, -clone-babl, -clone-gegl, -clone-gimp"
+	        description="Retrieve sources from their remote git repositories">
 	</target>
 
 	<!-- ================================= 
@@ -122,10 +96,10 @@
 	</target>
 
 	<!-- ================================= 
-          target: generate-config              
+          target: show-config              
          ================================= -->
-	<target name="generate-config" description="Generate a default configuration file">
-		<echoproperties destfile="${config.default.file}">
+	<target name="show-config" description="Show the current interpolated configuration">
+		<echoproperties>
 			<propertyset>
 				<propertyref prefix="cfg" />
 			</propertyset>
@@ -228,7 +202,9 @@
 		<attribute name="name" />
 		<attribute name="dir" />
 		<sequential>
-			<input message="The directory '@{dir}' exist but is not a git repository, all content will be removed. Proceed (y/n)?" validargs="y,n" addproperty="do.delete.@{name}" />
+			<input message="The directory '@{dir}' exist but is not a git repository, all content will be removed. Proceed (y/n)?"
+			       validargs="y,n"
+			       addproperty="do.delete.@{name}" />
 			<condition property="do.delete.@{name}.abort">
 				<equals arg1="n" arg2="${do.delete.@{name}}" />
 			</condition>
@@ -318,7 +294,10 @@
           target: -build-babl                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="-build-babl">
-		<shellscript shell="bash" dir="${cfg.babl.src.dir}" flag="-c" command="
+		<shellscript shell="bash"
+		             dir="${cfg.babl.src.dir}"
+		             flag="-c"
+		             command="
 			${cfg.babl.configure.cmd}
 			${cfg.babl.build.cmd}
 			${cfg.babl.install.cmd}
