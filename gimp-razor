@@ -1,3 +1,4 @@
 #!/bin/bash
 
-ant -q $@
+export ANT_ARGS="-logger org.apache.tools.ant.listener.AnsiColorLogger" 
+ant $@
