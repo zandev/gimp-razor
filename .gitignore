@@ -1,4 +1,4 @@
 *.swp
 *~
-shflags
 .project
+config/gimp-razor.properties

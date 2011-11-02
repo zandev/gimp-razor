@@ -18,35 +18,15 @@
 	<!-- 									Properties                                			   -->
 	<!-- ========================================================================================= -->
 
-	<target name="initialize">
-		<path id="user.recipes.dirset">
-			<dirset dir="${user.home}">
-				<include name="config/${ant.project.name}" />
-				<include name=".${ant.project.name}" />
-			</dirset>
-		</path>
-		<path id="basedir.recipes.dirset">
-			<dirset dir="${basedir}">
-				<include name="/recipes" />
-			</dirset>
-		</path>
-		<path id="system.recipes.dirset">
-			<dirset dir="/">
-				<include name="etc/${ant.project.name}" />
-				<include name="/usr/local/etc/${ant.project.name}" />
-				<include name="/opt/etc/${ant.project.name}" />
-			</dirset>
-		</path>
-		
-		<path id="recipes.dirset.path">
-			<path refid="user.recipes.dirset"/>
-			<path refid="basedir.recipes.dirset"/>
-			<path refid="system.recipes.dirset"/>
-		</path>
-		
-		<property name="recipes.dirset.path" refid="recipes.dirset.path" />
-		<echo>${recipes.dirset.path}</echo>
-	</target>
+	<!-- To override this, use the '-Dini.config.file=${file}' switch -->
+	<property name="ini.boot.file" location="${basedir}/config/${ant.project.name}.properties" />
+
+	<property file="${basedir}/config/${ant.project.name}.properties" />
+
+	<property name="ini.config.dir" location="${user.home}/.config/${ant.project.name}" />
+	<property name="ini.recipes.template.dir" location="${basedir}/config/recipes" />
+	<property name="ini.recipe.default.name" value="default" />
+
 
 
 	<!-- ========================================================================================= -->
@@ -168,6 +148,15 @@
 	<!-- 								Public targets	                                		   -->
 	<!-- ========================================================================================= -->
 
+	<!-- ================================= 
+          target: initialize              
+         ================================= -->
+	<target name="initialize"
+	        depends="-init-boot-config, -init-user-config-dir"
+	        description="Initialize a user configuration">
+
+	</target>
+
 
 	<!-- ================================= 
           target: all              
@@ -279,6 +268,33 @@
 	<!-- ========================================================================================= -->
 	<!-- 								Private targets	                                		   -->
 	<!-- ========================================================================================= -->
+
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+	<!-- 									initialize	                                		   -->
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<target name="-probe-ini-file">
+		<available file="${ini.boot.file}" type="file" property="ini.boot.file.exist" />
+	</target>
+
+	<target name="-init-boot-config" depends="-probe-ini-file" unless="ini.boot.file.exist">
+		<uservalidation message="The initial configuration file will be writen to ${ini.boot.file}. Proceed?"
+		                propertyname="boot.config" />
+		<fail if="user.abort.boot.config"
+		      message="${ant.project.name} need a boot file. The default interpolated location is '${ini.boot.file}'. You can override this setting with the -Dini.boot.file= switch." />
+		<echoproperties prefix="ini." destfile="${ini.boot.file}" />
+	</target>
+
+	<target name="-probe-user-config-dir">
+		<available file="${ini.config.dir}" type="dir" property="ini.config.dir.exist" />
+	</target>
+
+	<target name="-init-user-config-dir" depends="-probe-user-config-dir" unless="ini.config.dir.exist">
+		<mkdir dir="${ini.config.dir}" />
+		<copy todir="${ini.config.dir}">
+			<fileset dir="${ini.recipes.template.dir}" includes="*"/>
+		</copy>
+	</target>
 
 
 	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
