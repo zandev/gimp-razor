@@ -1,4 +1,4 @@
-<project name="gimp-razor" default="help">
+<project name="gimp-razor" default="initialize">
 
 	<!-- ========================================================================================= -->
 	<!-- 									Initialization                                			   -->
@@ -18,17 +18,35 @@
 	<!-- 									Properties                                			   -->
 	<!-- ========================================================================================= -->
 
-	<property name="config.dir" location="${basedir}/config" />
-	<property name="default.recipes.dir" location="${basedir}/recipes" />
-	<property name="recipe.name" value="master" />
-	<property name="recipe.file" location="${default.recipes.dir}/${recipe.name}" />
-
-	<!-- User configurable properties -->
-	<property environment="env" />
-	<property file="${recipe.file}" prefix="cfg" />
-
-	<!-- Default configurable properties-->
-	<property file="${config.dir}/build.properties" prefix="cfg" />
+	<target name="initialize">
+		<path id="user.recipes.dirset">
+			<dirset dir="${user.home}">
+				<include name="config/${ant.project.name}" />
+				<include name=".${ant.project.name}" />
+			</dirset>
+		</path>
+		<path id="basedir.recipes.dirset">
+			<dirset dir="${basedir}">
+				<include name="/recipes" />
+			</dirset>
+		</path>
+		<path id="system.recipes.dirset">
+			<dirset dir="/">
+				<include name="etc/${ant.project.name}" />
+				<include name="/usr/local/etc/${ant.project.name}" />
+				<include name="/opt/etc/${ant.project.name}" />
+			</dirset>
+		</path>
+		
+		<path id="recipes.dirset.path">
+			<path refid="user.recipes.dirset"/>
+			<path refid="basedir.recipes.dirset"/>
+			<path refid="system.recipes.dirset"/>
+		</path>
+		
+		<property name="recipes.dirset.path" refid="recipes.dirset.path" />
+		<echo>${recipes.dirset.path}</echo>
+	</target>
 
 
 	<!-- ========================================================================================= -->
@@ -150,6 +168,7 @@
 	<!-- 								Public targets	                                		   -->
 	<!-- ========================================================================================= -->
 
+
 	<!-- ================================= 
           target: all              
          ================================= -->
@@ -243,15 +262,6 @@
 	</target>
 
 	<!-- ================================= 
-          target: list-recipes              
-         ================================= -->
-	<target name="list-recipes" depends="-probe-recipes-dir" description="List the available recipes">
-		<pathconvert pathsep="${line.separator}" property="show-recipes" refid="user.recipes.fileset" />
-		<echo>${show-recipes}</echo>
-	</target>
-
-
-	<!-- ================================= 
           target: usage, help              
          ================================= -->
 	<target name="usage" description="Show the usage">
@@ -269,31 +279,6 @@
 	<!-- ========================================================================================= -->
 	<!-- 								Private targets	                                		   -->
 	<!-- ========================================================================================= -->
-
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: -probe-recipes-dir                      
-         - - - - - - - - - - - - - - - - - -->
-	<target name="-probe-recipes-dir">
-		<if>
-			<available file="${user.home}/.${ant.project.name}" type="dir" />
-			<then>
-				<property name="user.recipes.dir" location="${user.home}/.${ant.project.name}"/>
-			</then>
-			<elseif>
-				<available file="${user.home}/config/${ant.project.name}" type="dir" property="user.recipes.dir" />
-				<then>
-					<property name="user.recipes.dir" location="${user.home}/config/${ant.project.name}"/>
-				</then>
-			</elseif>
-		</if>
-		
-		<fileset id="default.recipes.fileset" dir="${default.recipes.dir}">
-			<include name="*" />
-		</fileset>
-		<fileset id="user.recipes.fileset" dir="${user.recipes.dir}">
-			<include name="*" />
-		</fileset>
-	</target>
 
 
 	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->

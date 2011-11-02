@@ -1,0 +1,37 @@
+processors = 1
+build.id = ${current.time}
+
+
+opt.dir = ${user.home}/opt
+src.dir = ${user.home}/src/git
+tmp.dir = ${user.home}/tmp/.${ant.project.name}
+gimp.install.dir = ${opt.dir}/gimp/build_${build.id}
+gimp.src.dir = ${src.dir}/gimp
+babl.src.dir = ${src.dir}/babl
+gegl.src.dir = ${src.dir}/gegl
+
+
+gimp.release = master
+babl.release = master
+gegl.release = master
+pkg.cmd = sudo apt-get install
+pkg.dependencies = fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby
+
+env.PATH = ${gimp.install.dir}/bin:$PATH
+env.PKG_CONFIG_PATH = ${gimp.install.dir}/lib/pkgconfig:$PKG_CONFIG_PATH
+env.LD_LIBRARY_PATH = ${gimp.install.dir}/lib:$LD_LIBRARY_PATH
+env.CFLAGS = -march=native
+
+shell = bash
+
+babl.configure.cmd = ./autogen.sh --prefix=${gimp.install.dir}
+babl.build.cmd = make clean; make -j ${processors}
+babl.install.cmd = make install
+
+gegl.configure.cmd = ./autogen.sh --prefix=${gimp.install.dir}
+gegl.build.cmd = make clean; make -j ${processors}
+gegl.install.cmd = make install
+
+gimp.configure.cmd = ./autogen.sh --prefix=${gimp.install.dir}
+gimp.build.cmd = make clean; make -j ${processors}
+gimp.install.cmd = make install
