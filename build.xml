@@ -1,7 +1,7 @@
 <project name="gimp-razor" default="help">
 
 	<!-- ========================================================================================= -->
-	<!-- 									Datatypes                                			   -->
+	<!-- 									Initialization                                			   -->
 	<!-- ========================================================================================= -->
 
 	<taskdef resource="net/sf/antcontrib/antcontrib.properties">
@@ -19,9 +19,9 @@
 	<!-- ========================================================================================= -->
 
 	<property name="config.dir" location="${basedir}/config" />
-	<property name="recipes.dir" location="${basedir}/recipes" />
+	<property name="default.recipes.dir" location="${basedir}/recipes" />
 	<property name="recipe.name" value="master" />
-	<property name="recipe.file" location="${recipes.dir}/${recipe.name}" />
+	<property name="recipe.file" location="${default.recipes.dir}/${recipe.name}" />
 
 	<!-- User configurable properties -->
 	<property environment="env" />
@@ -29,7 +29,6 @@
 
 	<!-- Default configurable properties-->
 	<property file="${config.dir}/build.properties" prefix="cfg" />
-
 
 
 	<!-- ========================================================================================= -->
@@ -74,7 +73,6 @@
 			</git>
 		</sequential>
 	</macrodef>
-
 
 	<macrodef name="git-update">
 		<attribute name="dir" />
@@ -139,7 +137,7 @@
 		<attribute name="name" />
 		<attribute name="dir" />
 		<sequential>
-			<uservalidation message="The directory '@{dir}' exist but is not a git repository, all content will be removed. Proceed?"
+			<uservalidation message="The directory '@{dir}' exist but is either not a git repository, or is corrupted. All content will be removed before checking out. Proceed?"
 			                propertyname="delete.src.dir" />
 			<fail if="user.abort.delete.src.dir">${ant.project.name} aborted by user. You may need to fix the directory '@{dir}' manually and run ${ant.project.name} again.</fail>
 			<delete dir="@{dir}" />
@@ -245,6 +243,15 @@
 	</target>
 
 	<!-- ================================= 
+          target: list-recipes              
+         ================================= -->
+	<target name="list-recipes" depends="-probe-recipes-dir" description="List the available recipes">
+		<pathconvert pathsep="${line.separator}" property="show-recipes" refid="user.recipes.fileset" />
+		<echo>${show-recipes}</echo>
+	</target>
+
+
+	<!-- ================================= 
           target: usage, help              
          ================================= -->
 	<target name="usage" description="Show the usage">
@@ -262,6 +269,31 @@
 	<!-- ========================================================================================= -->
 	<!-- 								Private targets	                                		   -->
 	<!-- ========================================================================================= -->
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: -probe-recipes-dir                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="-probe-recipes-dir">
+		<if>
+			<available file="${user.home}/.${ant.project.name}" type="dir" />
+			<then>
+				<property name="user.recipes.dir" location="${user.home}/.${ant.project.name}"/>
+			</then>
+			<elseif>
+				<available file="${user.home}/config/${ant.project.name}" type="dir" property="user.recipes.dir" />
+				<then>
+					<property name="user.recipes.dir" location="${user.home}/config/${ant.project.name}"/>
+				</then>
+			</elseif>
+		</if>
+		
+		<fileset id="default.recipes.fileset" dir="${default.recipes.dir}">
+			<include name="*" />
+		</fileset>
+		<fileset id="user.recipes.fileset" dir="${user.recipes.dir}">
+			<include name="*" />
+		</fileset>
+	</target>
 
 
 	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->

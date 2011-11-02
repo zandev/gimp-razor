@@ -4,9 +4,44 @@
 # Tiny wrapper around ant for the ease of preconfiguration
 # IMPORTANT:
 # All configurations entries defined in your recipes are internally loaded with a prefix of 'cfg.'
-# If you need to override some of these configurations, you must prefix them.
+# If you need to override some of these configurations right at the command line, you must prefix them.
 # ie: To override 'processors', use -Dcfg.processors=${value}
 
-ant -Dcfg.processors="$(cat /proc/cpuinfo | grep processor | wc -l)"\
-	-logger org.apache.tools.ant.listener.AnsiColorLogger\
-	$@
+declare ANT_ARGS="
+	-Dcfg.processors=$(cat /proc/cpuinfo | grep processor | wc -l)
+	-logger org.apache.tools.ant.listener.AnsiColorLogger
+	"
+
+show_usage(){
+	echo "
+USAGE: $0 [recipe] [target]
+WHERE 
+[recipe] is one of:
+$recipes
+[target] is one of:"
+	ant -p | grep '^ ' | sed 's/^ /    /'
+}
+
+for arg in "$@"; do
+	case "$arg" in
+		-h|--help)
+			show_usage
+			exit
+			;;
+		-d|--debug)
+			shift
+			ANT_ARGS="$ANT_ARGS -d"
+			;;
+		*)
+			if [[ $# == 2 ]]; then
+				break
+			else
+				echo Unknow argument $arg
+				exit 0
+			fi
+	esac
+done
+
+export ANT_ARGS
+
+ant -Drecipe.name=${1:-default} $2
