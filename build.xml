@@ -4,11 +4,11 @@
 	<!-- 									Datatypes                                			   -->
 	<!-- ========================================================================================= -->
 
-	<!--taskdef resource="net/sf/antcontrib/antcontrib.properties">
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties">
 		<classpath>
 			<pathelement location="/usr/share/java/ant-contrib-1.0b3.jar" />
 		</classpath>
-	</taskdef-->
+	</taskdef>
 
 	<tstamp>
 		<format property="current.time" pattern="yyyy-MM-dd-HH-mm-ss" />
@@ -26,17 +26,49 @@
 	<!-- User configurable properties -->
 	<property environment="env" />
 	<property file="${recipe.file}" prefix="cfg" />
-	
+
 	<!-- Default configurable properties-->
-	<property file="${config.dir}/build.properties" prefix="cfg"/>
+	<property file="${config.dir}/build.properties" prefix="cfg" />
 
-
+	<filelist id="tmp.dirs.list">
+		<file name="${cfg.tmp.dir}" />
+		<file name="${cfg.babl.src.dir}" />
+		<file name="${cfg.gegl.src.dir}" />
+		<file name="${cfg.gimp.src.dir}" />
+		<file name="${cfg.gimp.install.dir}" />
+	</filelist>
 
 
 
 	<!-- ========================================================================================= -->
 	<!-- 								Public targets	                                		   -->
 	<!-- ========================================================================================= -->
+
+	<!-- ================================= 
+          target: all              
+         ================================= -->
+	<target name="all" depends="installdeps, mkdirs, fetch, update, build, clean, launch" description="description">
+
+	</target>
+
+	<!-- ================================= 
+          target: clean              
+         ================================= -->
+	<target name="clean" depends="" description="Clean all temporary files">
+		<delete dir="${cfg.tmp.dir}" />
+	</target>
+
+	<!-- ================================= 
+	          target: clean-all          
+	         ================================= -->
+	<target name="clean-all" depends="" description="Clean all files and directories in use for the current recipe">
+		<delete dir="${cfg.tmp.dir}" />
+		<delete dir="${cfg.babl.src.dir}" />
+		<delete dir="${cfg.gegl.src.dir}" />
+		<delete dir="${cfg.gimp.src.dir}" />
+		<delete dir="${cfg.gimp.install.dir}" />
+	</target>
+
 
 	<!-- ================================= 
           target: mkdirs              
@@ -47,15 +79,15 @@
 		<mkdir dir="${cfg.gegl.src.dir}" />
 		<mkdir dir="${cfg.gimp.src.dir}" />
 		<mkdir dir="${cfg.gimp.install.dir}" />
+		<mkdir dir="${cfg.tmp.dir}" />
 	</target>
 
 	<!-- ================================= 
           target: installdeps              
          ================================= -->
 	<target name="installdeps"
-	        depends=""
 	        description="Installing required dependencies, using the configured package management system">
-		<shellscript shell="bash">${cfg.pkg.cmd} ${cfg.pkg.dependencies}</shellscript>
+		<shellexec>${cfg.pkg.cmd} ${cfg.pkg.dependencies}</shellexec>
 	</target>
 
 	<!-- ================================= 
@@ -69,16 +101,42 @@
 	<!-- ================================= 
           target: update              
          ================================= -->
-	<target name="update" depends="mkdirs,fetch" description="Update sources to the latest changes">
-		<git-update dir="${cfg.babl.src.dir}" />
-		<git-update dir="${cfg.gegl.src.dir}" />
-		<git-update dir="${cfg.gimp.src.dir}" />
+	<target name="update"
+	        depends="fetch,-update-babl,-update-gegl,-update-gimp"
+	        description="Update sources to the latest changes">
+	</target>
+
+	<!-- ================================= 
+          target: build              
+         ================================= -->
+	<target name="build"
+	        depends="update, -build-babl, -build-gegl, -build-gimp"
+	        description="Build babl, gegl and the gimp">
+	</target>
+
+	<!-- ================================= 
+          target: launch              
+         ================================= -->
+	<target name="launch" depends="build" description="Launch your cutting edge gimp">
+		<exec executable="${cfg.gimp.install.dir}/gimp-2.7">
+		</exec>
+	</target>
+
+	<!-- ================================= 
+          target: show-config              
+         ================================= -->
+	<target name="show-config" description="Show the current interpolated configuration">
+		<echoproperties format="xml">
+			<propertyset>
+				<propertyref prefix="cfg" />
+			</propertyset>
+		</echoproperties>
 	</target>
 
 	<!-- ================================= 
           target: usage, help              
          ================================= -->
-	<target name="usage">
+	<target name="usage" description="Show the usage">
 		<echo message="  Execute '${ant.project.name} -p' for build file help." />
 		<echo message="  Execute '${ant.project.name} -h' for Ant help." />
 		<exec executable="ant">
@@ -88,24 +146,6 @@
 
 	<target name="help" depends="usage" />
 
-	<!-- ================================= 
-          target: build              
-         ================================= -->
-	<target name="build" depends="-build-babl" description="Build babl, gegl and the gimp">
-
-	</target>
-
-	<!-- ================================= 
-          target: show-config              
-         ================================= -->
-	<target name="show-config" description="Show the current interpolated configuration">
-		<echoproperties>
-			<propertyset>
-				<propertyref prefix="cfg" />
-			</propertyset>
-		</echoproperties>
-	</target>
-
 
 
 
@@ -114,16 +154,16 @@
 	<!-- 									Macrodefs	                                		   -->
 	<!-- ========================================================================================= -->
 
-	<macrodef name="shellscript">
-		<attribute name="shell" />
-		<attribute name="dir" />
-		<attribute name="flag" />
-		<attribute name="command" />
+	<macrodef name="shellexec">
+		<attribute name="dir" default="" />
+		<attribute name="failonerror" default="true" />
+		<text name="cmd" />
 		<sequential>
-			<exec executable="@{shell}" dir="@{dir}">
-				<arg value="@{flag}" />
-				<arg value="@{command}" />
-			</exec>
+			<echo>Executing ${cfg.shell} command:</echo>
+			<echo>@{cmd}</echo>
+			<shellscript shell="${cfg.shell}" dir="@{dir}" failonerror="@{failonerror}">
+				@{cmd}
+			</shellscript>
 		</sequential>
 	</macrodef>
 
@@ -198,6 +238,15 @@
 		</sequential>
 	</macrodef>
 
+	<macrodef name="uservalidation">
+		<sequential>
+			<input message="@{message}" validargs="@{validargs}" addproperty="user.validate.@{name}" />
+			<condition property="user.abort.@{name}">
+				<equals arg1="n" arg2="${user.validate.@{name}}" />
+			</condition>
+		</sequential>
+	</macrodef>
+
 	<macrodef name="prepare-src-dir">
 		<attribute name="name" />
 		<attribute name="dir" />
@@ -218,92 +267,154 @@
 	<!-- 								Private targets	                                		   -->
 	<!-- ========================================================================================= -->
 
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: -init-properties                      
-         - - - - - - - - - - - - - - - - - -->
-	<target name="-init-properties">
 
-	</target>
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+	<!-- 										probe	                                		   -->
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: -probe-babl                      
-         - - - - - - - - - - - - - - - - - -->
 	<target name="-probe-babl" depends="mkdirs">
 		<probe-git name="babl" dir="${cfg.babl.src.dir}" resultproperty="babl.git.status" />
 	</target>
 
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: -probe-gegl                      
-         - - - - - - - - - - - - - - - - - -->
 	<target name="-probe-gegl" depends="mkdirs">
 		<probe-git name="gegl" dir="${cfg.gegl.src.dir}" resultproperty="gegl.git.status" />
 	</target>
 
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: -probe-gimp                      
-         - - - - - - - - - - - - - - - - - -->
 	<target name="-probe-gimp" depends="mkdirs">
 		<probe-git name="gimp" dir="${cfg.gimp.src.dir}" resultproperty="gimp.git.status" />
 	</target>
 
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: -prepare-babl-src-dir                      
-         - - - - - - - - - - - - - - - - - -->
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+	<!-- 										prepare	                                		   -->
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
 	<target name="-prepare-babl-src-dir" if="${babl.src.dir.delete}">
 		<prepare-src-dir name="babl" dir="${cfg.babl.src.dir}" />
 	</target>
 
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: -prepare-gegl-src-dir                      
-         - - - - - - - - - - - - - - - - - -->
 	<target name="-prepare-gegl-src-dir" if="${gegl.src.dir.delete}">
 		<prepare-src-dir name="gegl" dir="${cfg.gegl.src.dir}" />
 	</target>
 
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: -prepare-			">gimp-src-dir                      
-         - - - - - - - - - - - - - - - - - -->
 	<target name="-prepare-gimp-src-dir" if="${gimp.src.dir.delete}">
 		<prepare-src-dir name="gimp" dir="${cfg.gimp.src.dir}" />
 	</target>
 
 
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: -clone-babl                      
-         - - - - - - - - - - - - - - - - - -->
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+	<!-- 										clone	                                		   -->
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
 	<target name="-clone-babl" depends="mkdirs, -probe-babl, -prepare-babl-src-dir" unless="${babl.src.dir.is.git}">
 		<git-clone repository="git://git.gnome.org/babl" dest="${cfg.babl.src.dir}" />
 	</target>
 
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: -clone-gegl                      
-         - - - - - - - - - - - - - - - - - -->
 	<target name="-clone-gegl" depends="mkdirs, -probe-gegl, -prepare-gegl-src-dir" unless="${gegl.src.dir.is.git}">
 		<git-clone repository="git://git.gnome.org/gegl" dest="${cfg.gegl.src.dir}" />
 	</target>
 
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: -clone-gimp                      
-         - - - - - - - - - - - - - - - - - -->
 	<target name="-clone-gimp" depends="mkdirs, -probe-gimp, -prepare-gimp-src-dir" unless="${gimp.src.dir.is.git}">
 		<git-clone repository="git://git.gnome.org/gimp" dest="${cfg.gimp.src.dir}" />
 	</target>
 
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: -build-babl                      
-         - - - - - - - - - - - - - - - - - -->
-	<target name="-build-babl">
-		<shellscript shell="bash"
-		             dir="${cfg.babl.src.dir}"
-		             flag="-c"
-		             command="
-			${cfg.babl.configure.cmd}
-			${cfg.babl.build.cmd}
-			${cfg.babl.install.cmd}
-			">
-		</shellscript>
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+	<!-- 										update	                                		   -->
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<target name="-update-babl">
+		<git-update dir="${cfg.babl.src.dir}" />
+	</target>
+
+	<target name="-update-gegl">
+		<git-update dir="${cfg.gegl.src.dir}" />
+	</target>
+
+	<target name="-update-gimp">
+		<git-update dir="${cfg.gimp.src.dir}" />
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+	<!-- 										build	                                		   -->
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<target name="-build-babl" depends="-configure-babl, -compil-babl, -install-babl">
+	</target>
+
+	<target name="-build-gegl" depends="-configure-gegl, -compil-gegl, -install-gegl">
+	</target>
+
+	<target name="-build-gimp" depends="-configure-gimp, -compil-gimp, -install-gimp">
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+	<!-- 										configure                                		   -->
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<target name="-configure-babl">
+		<shellexec dir="${cfg.babl.src.dir}">${cfg.babl.configure.cmd}</shellexec>
+	</target>
+
+	<target name="-configure-gegl">
+		<shellexec dir="${cfg.gegl.src.dir}">${cfg.gegl.configure.cmd}</shellexec>
+	</target>
+
+	<target name="-configure-gimp">
+		<shellexec dir="${cfg.gimp.src.dir}">${cfg.gimp.configure.cmd}</shellexec>
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+	<!-- 										compil	                                		   -->
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<target name="-compil-babl">
+		<shellexec dir="${cfg.babl.src.dir}">${cfg.babl.build.cmd}</shellexec>
+	</target>
+
+	<target name="-compil-gegl">
+		<shellexec dir="${cfg.gegl.src.dir}">${cfg.gegl.build.cmd}</shellexec>
+	</target>
+
+	<target name="-compil-gimp">
+		<shellexec dir="${cfg.gimp.src.dir}">${cfg.gimp.build.cmd}</shellexec>
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+	<!-- 										install	                                		   -->
+	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<target name="-install-babl">
+		<shellexec dir="${cfg.babl.src.dir}">${cfg.babl.install.cmd}</shellexec>
+	</target>
+
+	<target name="-install-gegl">
+		<shellexec dir="${cfg.gegl.src.dir}">${cfg.gegl.install.cmd}</shellexec>
+	</target>
+
+	<target name="-install-gimp">
+		<shellexec dir="${cfg.gimp.src.dir}">${cfg.gimp.install.cmd}</shellexec>
 	</target>
 
 
 </project>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

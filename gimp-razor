@@ -1,5 +1,12 @@
 #!/bin/bash
 
+
+# Tiny wrapper around ant for the ease of preconfiguration
+# IMPORTANT:
+# All configurations entries defined in your recipes are internally loaded with a prefix of 'cfg.'
+# If you need to override some of these configurations, you must prefix them.
+# ie: To override 'processors', use -Dcfg.processors=${value}
+
 ant -Dcfg.processors="$(cat /proc/cpuinfo | grep processor | wc -l)"\
 	-logger org.apache.tools.ant.listener.AnsiColorLogger\
 	$@
