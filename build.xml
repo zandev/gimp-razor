@@ -30,124 +30,6 @@
 	<!-- Default configurable properties-->
 	<property file="${config.dir}/build.properties" prefix="cfg" />
 
-	<filelist id="tmp.dirs.list">
-		<file name="${cfg.tmp.dir}" />
-		<file name="${cfg.babl.src.dir}" />
-		<file name="${cfg.gegl.src.dir}" />
-		<file name="${cfg.gimp.src.dir}" />
-		<file name="${cfg.gimp.install.dir}" />
-	</filelist>
-
-
-
-	<!-- ========================================================================================= -->
-	<!-- 								Public targets	                                		   -->
-	<!-- ========================================================================================= -->
-
-	<!-- ================================= 
-          target: all              
-         ================================= -->
-	<target name="all" depends="installdeps, mkdirs, fetch, update, build, clean, launch" description="description">
-
-	</target>
-
-	<!-- ================================= 
-          target: clean              
-         ================================= -->
-	<target name="clean" depends="" description="Clean all temporary files">
-		<delete dir="${cfg.tmp.dir}" />
-	</target>
-
-	<!-- ================================= 
-	          target: clean-all          
-	         ================================= -->
-	<target name="clean-all" depends="" description="Clean all files and directories in use for the current recipe">
-		<delete dir="${cfg.tmp.dir}" />
-		<delete dir="${cfg.babl.src.dir}" />
-		<delete dir="${cfg.gegl.src.dir}" />
-		<delete dir="${cfg.gimp.src.dir}" />
-		<delete dir="${cfg.gimp.install.dir}" />
-	</target>
-
-
-	<!-- ================================= 
-          target: mkdirs              
-         ================================= -->
-	<target name="mkdirs" depends="" description="Create required directories">
-		<mkdir dir="${cfg.opt.dir}" />
-		<mkdir dir="${cfg.babl.src.dir}" />
-		<mkdir dir="${cfg.gegl.src.dir}" />
-		<mkdir dir="${cfg.gimp.src.dir}" />
-		<mkdir dir="${cfg.gimp.install.dir}" />
-		<mkdir dir="${cfg.tmp.dir}" />
-	</target>
-
-	<!-- ================================= 
-          target: installdeps              
-         ================================= -->
-	<target name="installdeps"
-	        description="Installing required dependencies, using the configured package management system">
-		<shellexec>${cfg.pkg.cmd} ${cfg.pkg.dependencies}</shellexec>
-	</target>
-
-	<!-- ================================= 
-          target: fetch              
-         ================================= -->
-	<target name="fetch"
-	        depends="mkdirs, -clone-babl, -clone-gegl, -clone-gimp"
-	        description="Retrieve sources from their remote git repositories">
-	</target>
-
-	<!-- ================================= 
-          target: update              
-         ================================= -->
-	<target name="update"
-	        depends="fetch,-update-babl,-update-gegl,-update-gimp"
-	        description="Update sources to the latest changes">
-	</target>
-
-	<!-- ================================= 
-          target: build              
-         ================================= -->
-	<target name="build"
-	        depends="update, -build-babl, -build-gegl, -build-gimp"
-	        description="Build babl, gegl and the gimp">
-	</target>
-
-	<!-- ================================= 
-          target: launch              
-         ================================= -->
-	<target name="launch" depends="build" description="Launch your cutting edge gimp">
-		<exec executable="${cfg.gimp.install.dir}/gimp-2.7">
-		</exec>
-	</target>
-
-	<!-- ================================= 
-          target: show-config              
-         ================================= -->
-	<target name="show-config" description="Show the current interpolated configuration">
-		<echoproperties format="xml">
-			<propertyset>
-				<propertyref prefix="cfg" />
-			</propertyset>
-		</echoproperties>
-	</target>
-
-	<!-- ================================= 
-          target: usage, help              
-         ================================= -->
-	<target name="usage" description="Show the usage">
-		<echo message="  Execute '${ant.project.name} -p' for build file help." />
-		<echo message="  Execute '${ant.project.name} -h' for Ant help." />
-		<exec executable="ant">
-			<arg value="-p" />
-		</exec>
-	</target>
-
-	<target name="help" depends="usage" />
-
-
-
 
 
 	<!-- ========================================================================================= -->
@@ -239,10 +121,16 @@
 	</macrodef>
 
 	<macrodef name="uservalidation">
+		<attribute name="propertyname" />
+		<attribute name="message" />
+		<attribute name="validargs" default="y,n" />
+		<attribute name="abortarg" default="n" />
+		<attribute name="inputprefix" default="user.validate." />
+		<attribute name="abortprefix" default="user.abort." />
 		<sequential>
-			<input message="@{message}" validargs="@{validargs}" addproperty="user.validate.@{name}" />
-			<condition property="user.abort.@{name}">
-				<equals arg1="n" arg2="${user.validate.@{name}}" />
+			<input message="@{message}" validargs="@{validargs}" addproperty="@{inputprefix}@{propertyname}" />
+			<condition property="@{abortprefix}@{propertyname}">
+				<equals arg1="n" arg2="${@{inputprefix}@{propertyname}}" />
 			</condition>
 		</sequential>
 	</macrodef>
@@ -251,16 +139,124 @@
 		<attribute name="name" />
 		<attribute name="dir" />
 		<sequential>
-			<input message="The directory '@{dir}' exist but is not a git repository, all content will be removed. Proceed (y/n)?"
-			       validargs="y,n"
-			       addproperty="do.delete.@{name}" />
-			<condition property="do.delete.@{name}.abort">
-				<equals arg1="n" arg2="${do.delete.@{name}}" />
-			</condition>
-			<fail if="do.delete.@{name}.abort">${ant.project.name} aborted by user. You may need to fix the directory '@{dir}' manually and run ${ant.project.name} again.</fail>
+			<uservalidation message="The directory '@{dir}' exist but is not a git repository, all content will be removed. Proceed?"
+			                propertyname="delete.src.dir" />
+			<fail if="user.abort.delete.src.dir">${ant.project.name} aborted by user. You may need to fix the directory '@{dir}' manually and run ${ant.project.name} again.</fail>
 			<delete dir="@{dir}" />
 		</sequential>
 	</macrodef>
+
+
+
+	<!-- ========================================================================================= -->
+	<!-- 								Public targets	                                		   -->
+	<!-- ========================================================================================= -->
+
+	<!-- ================================= 
+          target: all              
+         ================================= -->
+	<target name="all" depends="installdeps, mkdirs, fetch, update, build, clean, launch" description="description">
+
+	</target>
+
+	<!-- ================================= 
+          target: clean              
+         ================================= -->
+	<target name="clean" depends="" description="Clean all temporary files">
+		<delete dir="${cfg.tmp.dir}" />
+	</target>
+
+	<!-- ================================= 
+	          target: clean-all          
+	         ================================= -->
+	<target name="clean-all" depends="" description="Clean all files and directories in use for the current recipe">
+		<uservalidation message="${ant.project.name} is going to delete all sources, temporaries and build directories it use. Proceed?"
+		                propertyname="clean.all" />
+		<fail if="user.abort.clean.all" />
+		<delete dir="${cfg.tmp.dir}" />
+		<delete dir="${cfg.babl.src.dir}" />
+		<delete dir="${cfg.gegl.src.dir}" />
+		<delete dir="${cfg.gimp.src.dir}" />
+		<delete dir="${cfg.gimp.install.dir}" />
+	</target>
+
+
+	<!-- ================================= 
+          target: mkdirs              
+         ================================= -->
+	<target name="mkdirs" depends="" description="Create required directories">
+		<mkdir dir="${cfg.opt.dir}" />
+		<mkdir dir="${cfg.babl.src.dir}" />
+		<mkdir dir="${cfg.gegl.src.dir}" />
+		<mkdir dir="${cfg.gimp.src.dir}" />
+		<mkdir dir="${cfg.gimp.install.dir}" />
+		<mkdir dir="${cfg.tmp.dir}" />
+	</target>
+
+	<!-- ================================= 
+          target: installdeps              
+         ================================= -->
+	<target name="installdeps"
+	        description="Installing required dependencies, using the configured package management system">
+		<shellexec>${cfg.pkg.cmd} ${cfg.pkg.dependencies}</shellexec>
+	</target>
+
+	<!-- ================================= 
+          target: fetch              
+         ================================= -->
+	<target name="fetch"
+	        depends="mkdirs, -clone-babl, -clone-gegl, -clone-gimp"
+	        description="Retrieve sources from their remote git repositories">
+	</target>
+
+	<!-- ================================= 
+          target: update              
+         ================================= -->
+	<target name="update"
+	        depends="fetch,-update-babl,-update-gegl,-update-gimp"
+	        description="Update sources to the latest changes">
+	</target>
+
+	<!-- ================================= 
+          target: build              
+         ================================= -->
+	<target name="build"
+	        depends="update, -build-babl, -build-gegl, -build-gimp"
+	        description="Build babl, gegl and the gimp">
+	</target>
+
+	<!-- ================================= 
+          target: launch              
+         ================================= -->
+	<target name="launch" depends="build" description="Launch your cutting edge gimp">
+		<exec executable="${cfg.gimp.install.dir}/gimp-2.7">
+		</exec>
+	</target>
+
+	<!-- ================================= 
+          target: show-config              
+         ================================= -->
+	<target name="show-config" description="Show the current interpolated configuration">
+		<echoproperties format="xml">
+			<propertyset>
+				<propertyref prefix="cfg" />
+			</propertyset>
+		</echoproperties>
+	</target>
+
+	<!-- ================================= 
+          target: usage, help              
+         ================================= -->
+	<target name="usage" description="Show the usage">
+		<echo message="  Execute '${ant.project.name} -p' for build file help." />
+		<echo message="  Execute '${ant.project.name} -h' for Ant help." />
+		<exec executable="ant">
+			<arg value="-p" />
+		</exec>
+	</target>
+
+	<target name="help" depends="usage" />
+
 
 
 	<!-- ========================================================================================= -->
