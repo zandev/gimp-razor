@@ -79,7 +79,7 @@
   # If you're running another distro, you'll need to pich the list by yourself
   # Read the ${gimp_src_dir}/INSTALL, 
   # and do trial'n errors by running this script until you've resolved all dependencies
-  deps="fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg62-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby"
+  deps="fontconfig gtk-doc-tools intltool libcairo2 libdbus-glib-1-2 libexif-dev libfontconfig1 libfreetype6 libgdk-pixbuf2.0-0 libgtk-3-0 libjasper-dev libjpeg-dev liblcms1-dev liblcms-dev libmng-dev libopenexr-dev libpango1.0-0 libpng-dev libpoppler-dev librsvg2-common librsvg2-dev libtiff4-dev libtiff-tools libtool libwebkit-dev libwmf-dev pkg-config python-dev python-gtk2-dev ruby"
 
 ##
 ###
@@ -138,7 +138,7 @@
 
     install_apt_deps(){
       log_section "Installing required apt dependencies"
-      ${pkg_cmd} $deps || exit_with "aptitude fail while trying to install dependencies $deps"
+      ${pkg_cmd} $deps || exit_with "package manager fail while trying to install dependencies $deps"
     }
 
     update_git_repository(){
@@ -193,7 +193,7 @@
     }
 
     test_build(){
-      "$gimp_install_dir/bin/gimp-2.7" || exit_with "while trying to launch your rounded edge gimp :("
+      "$gimp_install_dir/bin/gimp-2.9" || exit_with "while trying to launch your rounded edge gimp :("
     }
 
   ##
